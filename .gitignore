@@ -1,0 +1,27 @@
+# Claude Code internal files
+.claude/
+
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment variables — NEVER commit these
+.env
+backend/.env
+*.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/

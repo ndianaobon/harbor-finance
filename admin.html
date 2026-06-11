@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harbor Finance — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:            #0d1117;
+  --surface:       #161b22;
+  --surface-2:     #1c2333;
+  --surface-3:     #21262d;
+  --border:        #30363d;
+  --border-2:      #21262d;
+  --primary:       #2ea043;
+  --primary-hover: #3fb950;
+  --primary-dim:   rgba(46,160,67,.12);
+  --primary-glow:  rgba(46,160,67,.18);
+  --accent:        #58a6ff;
+  --danger:        #f85149;
+  --danger-dim:    rgba(248,81,73,.12);
+  --warning:       #e3b341;
+  --warning-dim:   rgba(227,179,65,.12);
+  --info:          #58a6ff;
+  --info-dim:      rgba(88,166,255,.12);
+  --text:          #e6edf3;
+  --text-2:        #8b949e;
+  --text-3:        #6e7681;
+  --font:          'Inter', system-ui, sans-serif;
+  --r:             8px;
+  --r-lg:          14px;
+  --r-xl:          20px;
+  --shadow:        0 8px 32px rgba(0,0,0,.4);
+  --nav-h:         64px;
+  --sb-w:          260px;
+  --ease:          cubic-bezier(.4,0,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--font);cursor:pointer;border:none;outline:none}
+input,select,textarea{font-family:var(--font)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── LOGIN ──────────────────────────────────────────── */
+#loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:0}
+.login-wrap{width:100%;max-width:420px;padding:0 20px}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo svg{width:40px;height:40px;margin-bottom:12px}
+.login-logo h1{font-size:22px;font-weight:700;color:var(--text)}
+.login-logo p{font-size:13px;color:var(--text-2);margin-top:4px}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px 32px}
+.login-card h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.login-card p{font-size:13px;color:var(--text-2);margin-bottom:28px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;color:var(--text);font-size:14px;transition:.2s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-dim)}
+.login-btn{width:100%;background:var(--primary);color:#fff;font-size:14px;font-weight:600;padding:11px;border-radius:var(--r);margin-top:8px;transition:.2s}
+.login-btn:hover{background:var(--primary-hover)}
+.login-err{background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--danger);margin-bottom:16px;display:none}
+
+/* ── ADMIN SHELL ─────────────────────────────────────── */
+#adminShell{display:none;min-height:100vh}
+
+/* topbar */
+.topbar{position:fixed;top:0;left:var(--sb-w);right:0;height:var(--nav-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:200;transition:left .3s var(--ease)}
+.topbar.sb-closed{left:0}
+.sb-toggle{background:none;padding:6px;border-radius:6px;color:var(--text-2);transition:.2s;display:flex;align-items:center}
+.sb-toggle:hover{background:var(--surface-2);color:var(--text)}
+.topbar-title{font-size:16px;font-weight:600;flex:1}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.tb-badge{position:relative;display:flex}
+.tb-badge .dot{position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid var(--surface)}
+.tb-btn{background:none;padding:7px;border-radius:6px;color:var(--text-2);transition:.2s;display:flex;align-items:center}
+.tb-btn:hover{background:var(--surface-2);color:var(--text)}
+.tb-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-dim);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--primary);cursor:pointer}
+.tb-role{font-size:11px;color:var(--text-3);display:none}
+
+/* sidebar */
+.sidebar{position:fixed;top:0;left:0;width:var(--sb-w);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:300;transition:transform .3s var(--ease);overflow:hidden}
+.sidebar.closed{transform:translateX(-100%)}
+.sb-header{padding:0 20px;height:var(--nav-h);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-logo-icon{width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-logo-icon svg{width:18px;height:18px;fill:#fff}
+.sb-logo-text{font-size:15px;font-weight:700;color:var(--text)}
+.sb-logo-sub{font-size:10px;color:var(--danger);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--danger-dim);padding:1px 6px;border-radius:4px}
+.sb-nav{flex:1;overflow-y:auto;padding:12px 0}
+.sb-section{padding:6px 20px 2px;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-top:8px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;transition:.15s;border-left:3px solid transparent;position:relative}
+.ni:hover{color:var(--text);background:var(--surface-2)}
+.ni.active{color:var(--primary);background:var(--primary-dim);border-left-color:var(--primary)}
+.ni svg{width:16px;height:16px;flex-shrink:0}
+.ni .badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sb-footer{padding:16px 20px;border-top:1px solid var(--border);flex-shrink:0}
+.sb-admin-info{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sb-admin-av{width:36px;height:36px;border-radius:50%;background:var(--primary-dim);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--primary);flex-shrink:0}
+.sb-admin-name{font-size:13px;font-weight:600;color:var(--text)}
+.sb-admin-role{font-size:11px;color:var(--text-3)}
+.sb-logout{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:8px;border-radius:var(--r);font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
+.sb-logout:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
+
+/* main content */
+.main-content{margin-left:var(--sb-w);margin-top:var(--nav-h);padding:28px;min-height:calc(100vh - var(--nav-h));transition:margin-left .3s var(--ease)}
+.main-content.sb-closed{margin-left:0}
+
+/* page content */
+.page-header{margin-bottom:24px}
+.page-header h2{font-size:20px;font-weight:700}
+.page-header p{font-size:13px;color:var(--text-2);margin-top:4px}
+.page-header-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
+.stat-card .sc-label{font-size:12px;color:var(--text-2);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-card .sc-val{font-size:26px;font-weight:700;line-height:1}
+.stat-card .sc-sub{font-size:12px;color:var(--text-3);margin-top:6px;display:flex;align-items:center;gap:4px}
+.sc-sub .up{color:var(--primary)}
+.sc-sub .dn{color:var(--danger)}
+
+/* tables */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.tbl-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.tbl-header h3{font-size:15px;font-weight:600}
+.tbl-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-box{position:relative}
+.search-box input{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:7px 12px 7px 34px;color:var(--text);font-size:13px;width:200px;transition:.2s}
+.search-box input:focus{outline:none;border-color:var(--primary);width:240px}
+.search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-3);pointer-events:none}
+.filter-sel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-size:13px}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;text-align:left;background:var(--surface-2);border-bottom:1px solid var(--border)}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.tbl-overflow{overflow-x:auto}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--primary-dim);color:var(--primary)}
+.badge-red{background:var(--danger-dim);color:var(--danger)}
+.badge-yellow{background:var(--warning-dim);color:var(--warning)}
+.badge-blue{background:var(--info-dim);color:var(--info)}
+.badge-gray{background:var(--surface-3);color:var(--text-2)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:.2s;border:1px solid transparent}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-danger{background:var(--danger-dim);color:var(--danger);border-color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-ghost{background:var(--surface-2);color:var(--text-2);border-color:var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
+.btn-warn{background:var(--warning-dim);color:var(--warning);border-color:var(--warning)}
+.btn-warn:hover{background:var(--warning);color:#000}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.act-btns{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+/* form elements */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-size:13px;transition:.2s;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-dim)}
+.form-group textarea{resize:vertical;min-height:90px}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;margin-bottom:20px}
+.form-card h3{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+
+/* toggle */
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface-3);border-radius:11px;transition:.2s}
+.toggle-slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked + .toggle-slider{background:var(--primary)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;border-radius:6px;display:flex;transition:.2s}
+.modal-close:hover{color:var(--text);background:var(--surface-2)}
+.modal-body{padding:24px}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* tabs */
+.tabs{display:flex;gap:2px;background:var(--surface-2);border-radius:var(--r);padding:4px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;transition:.15s;border:none;background:none}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* avatar */
+.av{width:34px;height:34px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-2);flex-shrink:0;object-fit:cover}
+
+/* user row */
+.user-cell{display:flex;align-items:center;gap:10px}
+.user-cell .name{font-weight:500;font-size:13px}
+.user-cell .email{font-size:11px;color:var(--text-3)}
+
+/* receipt preview */
+.receipt-thumb{width:48px;height:36px;background:var(--surface-3);border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-3);cursor:pointer;overflow:hidden}
+
+/* KYC doc */
+.kyc-docs{display:flex;gap:8px;flex-wrap:wrap}
+.kyc-doc{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:5px;cursor:pointer}
+.kyc-doc:hover{border-color:var(--accent);color:var(--accent)}
+
+/* chart placeholder */
+.chart-ph{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:32px;text-align:center;color:var(--text-3);font-size:13px;margin-bottom:20px}
+
+/* toast */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 18px;font-size:13px;font-weight:500;color:var(--text);box-shadow:var(--shadow);z-index:9999;display:none;animation:slideUp .25s var(--ease)}
+#toast.success{border-color:var(--primary);background:var(--primary-dim);color:var(--primary)}
+#toast.error{border-color:var(--danger);background:var(--danger-dim);color:var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* overlay for mobile sidebar */
+#sbOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:none}
+
+/* empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--text-3)}
+.empty svg{width:40px;height:40px;margin:0 auto 12px;opacity:.4}
+.empty p{font-size:14px}
+
+/* activity log */
+.log-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-2)}
+.log-item:last-child{border-bottom:none}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.log-dot.green{background:var(--primary)}
+.log-dot.red{background:var(--danger)}
+.log-dot.yellow{background:var(--warning)}
+.log-dot.blue{background:var(--accent)}
+.log-text{font-size:13px;line-height:1.5}
+.log-time{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* progress bar */
+.prog{background:var(--surface-3);border-radius:4px;height:6px;overflow:hidden}
+.prog-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .5s var(--ease)}
+
+/* info rows */
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-2);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-row .k{color:var(--text-2)}
+.info-row .v{font-weight:500;text-align:right}
+
+/* responsive */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:none}
+  .topbar{left:0 !important}
+  .main-content{margin-left:0 !important}
+  #sbOverlay.open{display:block}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid.cols3{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .main-content{padding:16px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .search-box input{width:140px}
+  .search-box input:focus{width:160px}
+  .tb-role{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="10" fill="#2ea043"/>
+        <path d="M8 28 L14 16 L20 22 L26 12 L32 20" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="32" cy="20" r="3" fill="#fff"/>
+      </svg>
+      <h1>Harbor Finance</h1>
+      <p>Administration Portal</p>
+    </div>
+    <div class="login-card">
+      <h2>Admin Sign In</h2>
+      <p>Access restricted to authorized personnel only.</p>
+      <div id="loginErr" class="login-err">Invalid credentials. Please try again.</div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="admin@harborfinance.com" value="admin@harborfinance.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="Enter your password" value="Admin@1234">
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select id="loginRole">
+          <option value="super">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="mod">Moderator</option>
+        </select>
+      </div>
+      <button class="login-btn" onclick="doLogin()">Sign In to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminShell">
+  <div id="sbOverlay" onclick="closeSB()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M3 18l5-8 5 5 5-9 3 5"/></svg>
+      </div>
+      <div>
+        <div class="sb-logo-text">Harbor</div>
+      </div>
+      <span class="sb-logo-sub" style="margin-left:4px">Admin</span>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Overview</div>
+      <div class="ni active" data-page="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard Overview
+      </div>
+      <div class="ni" data-page="logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Activity Logs
+      </div>
+
+      <div class="sb-section">Users</div>
+      <div class="ni" data-page="users">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        User Management
+        <span class="badge">2</span>
+      </div>
+      <div class="ni" data-page="kyc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        KYC Management
+        <span class="badge">5</span>
+      </div>
+
+      <div class="sb-section">Finance</div>
+      <div class="ni" data-page="deposits">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Deposit Management
+        <span class="badge">8</span>
+      </div>
+      <div class="ni" data-page="withdrawals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 11 21 7 17 3"/><line x1="21" y1="7" x2="9" y2="7"/><polyline points="7 21 3 17 7 13"/><line x1="3" y1="17" x2="15" y2="17"/></svg>
+        Withdrawal Management
+        <span class="badge">3</span>
+      </div>
+      <div class="ni" data-page="investments">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Investment Plans
+      </div>
+
+      <div class="sb-section">Trading</div>
+      <div class="ni" data-page="trading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18l5-8 5 5 5-9 3 5"/></svg>
+        Trading Control
+      </div>
+      <div class="ni" data-page="referrals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Referral Management
+      </div>
+
+      <div class="sb-section">Content</div>
+      <div class="ni" data-page="cms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        CMS Management
+      </div>
+      <div class="ni" data-page="notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Notifications
+      </div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-admin-info">
+        <div class="sb-admin-av" id="sbAvatar">SA</div>
+        <div>
+          <div class="sb-admin-name" id="sbName">Super Admin</div>
+          <div class="sb-admin-role" id="sbRole">super@harborfinance.com</div>
+        </div>
+      </div>
+      <button class="sb-logout" onclick="doLogout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar" id="topbar">
+    <button class="sb-toggle" onclick="toggleSB()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title" id="tbTitle">Dashboard Overview</span>
+    <div class="topbar-right">
+      <div class="tb-badge">
+        <button class="tb-btn" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <span class="dot"></span>
+      </div>
+      <div class="tb-avatar" id="topAvatar">SA</div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <main class="main-content" id="pc"></main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalBox">
+    <div class="modal-head">
+      <h3 id="modalTitle">Modal</h3>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const CREDS = {
+  super:{ email:'admin@harborfinance.com', pass:'Admin@1234', label:'Super Admin', initials:'SA' },
+  admin:{ email:'manager@harborfinance.com', pass:'Mgr@1234', label:'Admin', initials:'AD' },
+  mod:  { email:'mod@harborfinance.com',     pass:'Mod@1234', label:'Moderator', initials:'MO' }
+};
+let currentRole = 'super';
+
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const role  = document.getElementById('loginRole').value;
+  const cred  = CREDS[role];
+  if(email === cred.email && pass === cred.pass){
+    currentRole = role;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminShell').style.display  = 'block';
+    document.getElementById('sbAvatar').textContent   = cred.initials;
+    document.getElementById('sbName').textContent     = cred.label;
+    document.getElementById('sbRole').textContent     = cred.email;
+    document.getElementById('topAvatar').textContent  = cred.initials;
+    go('overview');
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+function doLogout(){
+  document.getElementById('adminShell').style.display  = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginErr').style.display    = 'none';
+}
+document.addEventListener('keydown', e => { if(e.key==='Enter'&&document.getElementById('loginScreen').style.display!=='none') doLogin(); });
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+let sbOpen = true;
+function toggleSB(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sbOverlay');
+  const pc = document.getElementById('pc').parentElement;
+  const tb = document.getElementById('topbar');
+  if(window.innerWidth <= 900){
+    sb.classList.toggle('open');
+    ov.classList.toggle('open');
+  } else {
+    sbOpen = !sbOpen;
+    sb.classList.toggle('closed', !sbOpen);
+    pc.classList.toggle('sb-closed', !sbOpen);
+    tb.classList.toggle('sb-closed', !sbOpen);
+  }
+}
+function closeSB(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('open');
+}
+
+// ── ROUTING ───────────────────────────────────────────────────────────────────
+const TITLES = {
+  overview:'Dashboard Overview', logs:'Activity Logs', users:'User Management',
+  kyc:'KYC Management', deposits:'Deposit Management', withdrawals:'Withdrawal Management',
+  investments:'Investment Plans', trading:'Trading Control', referrals:'Referral Management',
+  cms:'CMS Management', notifications:'Notification System'
+};
+function go(key){
+  document.getElementById('pc').innerHTML = PAGES[key] ? PAGES[key]() : '<div class="empty"><p>Page not found.</p></div>';
+  document.getElementById('tbTitle').textContent = TITLES[key]||key;
+  document.querySelectorAll('.ni').forEach(el => el.classList.toggle('active', el.dataset.page===key));
+  window.scrollTo({top:0});
+  if(window.innerWidth<=900) closeSB();
+}
+document.querySelectorAll('.ni').forEach(el => el.addEventListener('click', ()=>go(el.dataset.page)));
+
+// ── TOAST / MODAL ─────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type; el.style.display='block';
+  clearTimeout(_tt); _tt = setTimeout(()=>el.style.display='none',3000);
+}
+function openModal(title, body, foot=''){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalFoot').innerHTML = foot||'<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+document.getElementById('modalBg').addEventListener('click', e=>{ if(e.target===document.getElementById('modalBg')) closeModal(); });
+
+// ── MOCK DATA ─────────────────────────────────────────────────────────────────
+const USERS = [
+  {id:'U001',name:'James Carter',email:'james@email.com',country:'US',balance:'$12,450',invested:'$8,000',status:'active',kyc:'verified',joined:'2025-12-01',ref:'none'},
+  {id:'U002',name:'Sophia Williams',email:'sophia@email.com',country:'GB',balance:'$5,200',invested:'$3,500',status:'active',kyc:'pending',joined:'2026-01-15',ref:'U001'},
+  {id:'U003',name:'Liam Johnson',email:'liam@email.com',country:'CA',balance:'$0',invested:'$0',status:'suspended',kyc:'rejected',joined:'2026-02-20',ref:'none'},
+  {id:'U004',name:'Emma Brown',email:'emma@email.com',country:'AU',balance:'$31,000',invested:'$25,000',status:'active',kyc:'verified',joined:'2025-10-08',ref:'U001'},
+  {id:'U005',name:'Noah Davis',email:'noah@email.com',country:'NG',balance:'$2,800',invested:'$2,000',status:'active',kyc:'pending',joined:'2026-03-01',ref:'U002'},
+  {id:'U006',name:'Olivia Martinez',email:'olivia@email.com',country:'DE',balance:'$0',invested:'$0',status:'banned',kyc:'rejected',joined:'2026-01-30',ref:'none'},
+  {id:'U007',name:'William Anderson',email:'william@email.com',country:'FR',balance:'$18,600',invested:'$15,000',status:'active',kyc:'verified',joined:'2025-11-12',ref:'U004'},
+  {id:'U008',name:'Ava Thomas',email:'ava@email.com',country:'JP',balance:'$7,300',invested:'$5,000',status:'active',kyc:'verified',joined:'2026-02-05',ref:'none'},
+];
+const DEPOSITS = [
+  {id:'D001',user:'James Carter',method:'Bitcoin',amount:'$2,000',date:'2026-06-10 14:22',status:'pending',receipt:true},
+  {id:'D002',user:'Sophia Williams',method:'USDT TRC20',amount:'$500',date:'2026-06-10 13:05',status:'pending',receipt:true},
+  {id:'D003',user:'Emma Brown',method:'Ethereum',amount:'$5,000',date:'2026-06-10 11:30',status:'pending',receipt:true},
+  {id:'D004',user:'Noah Davis',method:'Bank Wire',amount:'$800',date:'2026-06-10 09:15',status:'pending',receipt:true},
+  {id:'D005',user:'William Anderson',method:'Bitcoin',amount:'$3,500',date:'2026-06-09 22:40',status:'pending',receipt:true},
+  {id:'D006',user:'Ava Thomas',method:'USDT ERC20',amount:'$1,200',date:'2026-06-09 18:00',status:'pending',receipt:true},
+  {id:'D007',user:'James Carter',method:'Ethereum',amount:'$1,000',date:'2026-06-08 12:00',status:'approved',receipt:true},
+  {id:'D008',user:'Emma Brown',method:'Bitcoin',amount:'$10,000',date:'2026-06-07 09:30',status:'approved',receipt:true},
+];
+const WITHDRAWALS = [
+  {id:'W001',user:'James Carter',method:'Bitcoin',wallet:'1A2b3C...xyz',amount:'$1,500',fee:'$15',net:'$1,485',date:'2026-06-10 15:00',status:'pending'},
+  {id:'W002',user:'Emma Brown',method:'Bank Wire',wallet:'GB29NWBK60161331926819',amount:'$3,000',fee:'$30',net:'$2,970',date:'2026-06-10 12:30',status:'pending'},
+  {id:'W003',user:'Ava Thomas',method:'USDT TRC20',wallet:'TRx9...abc',amount:'$700',fee:'$7',net:'$693',date:'2026-06-10 10:00',status:'pending'},
+  {id:'W004',user:'William Anderson',method:'Ethereum',wallet:'0x1a2b...ef',amount:'$2,200',fee:'$22',net:'$2,178',date:'2026-06-09 17:00',status:'approved'},
+  {id:'W005',user:'James Carter',method:'Bitcoin',wallet:'1A2b3C...xyz',amount:'$800',fee:'$8',net:'$792',date:'2026-06-08 11:00',status:'rejected'},
+];
+const KYC_QUEUE = [
+  {id:'K001',user:'Sophia Williams',type:'Passport + Selfie',submitted:'2026-06-09',status:'pending',docs:['Passport Front','Passport Back','Selfie with ID']},
+  {id:'K002',user:'Noah Davis',type:"Driver's License + Utility Bill",submitted:'2026-06-08',status:'pending',docs:["Driver's License",'Utility Bill','Selfie']},
+  {id:'K003',user:'Olivia Martinez',type:'National ID',submitted:'2026-06-07',status:'rejected',docs:['National ID Front']},
+  {id:'K004',user:'Liam Johnson',type:'Passport',submitted:'2026-06-06',status:'rejected',docs:['Passport']},
+  {id:'K005',user:'New User A',type:'Passport',submitted:'2026-06-10',status:'pending',docs:['Passport Front','Passport Back']},
+];
+const INV_PLANS = [
+  {id:'P001',name:'Starter',min:'$500',max:'$4,999',roi:'0.5%',period:'Hourly',duration:'30 days',active:true},
+  {id:'P002',name:'Silver',min:'$5,000',max:'$19,999',roi:'0.8%',period:'Hourly',duration:'60 days',active:true},
+  {id:'P003',name:'Gold',min:'$20,000',max:'$99,999',roi:'1.2%',period:'Hourly',duration:'90 days',active:true},
+  {id:'P004',name:'Platinum',min:'$100,000',max:'Unlimited',roi:'1.5%',period:'Hourly',duration:'180 days',active:false},
+];
+const ASSETS = [
+  {id:'A001',name:'BTC/USD',spread:'2.0',leverage:'100x',mode:'live',active:true},
+  {id:'A002',name:'ETH/USD',spread:'1.5',leverage:'50x',mode:'live',active:true},
+  {id:'A003',name:'EUR/USD',spread:'0.8',leverage:'200x',mode:'live',active:true},
+  {id:'A004',name:'XAU/USD',spread:'3.0',leverage:'100x',mode:'demo',active:false},
+  {id:'A005',name:'AAPL',spread:'1.2',leverage:'10x',mode:'live',active:true},
+];
+const REFERRALS = [
+  {id:'U001',user:'James Carter',referrals:4,earned:'$240',rate:'3%',status:'active'},
+  {id:'U004',user:'Emma Brown',referrals:2,earned:'$120',rate:'3%',status:'active'},
+  {id:'U002',user:'Sophia Williams',referrals:1,earned:'$30',rate:'3%',status:'active'},
+];
+const LOGS = [
+  {type:'green',text:'Admin approved deposit D008 — $10,000 for Emma Brown',time:'2026-06-11 09:02'},
+  {type:'red',text:'Admin rejected withdrawal W005 — $800 for James Carter',time:'2026-06-11 08:50'},
+  {type:'blue',text:'Super Admin logged in from 102.89.1.45',time:'2026-06-11 08:30'},
+  {type:'yellow',text:'KYC rejected for Olivia Martinez — document blur',time:'2026-06-10 22:15'},
+  {type:'green',text:'New investment plan "Silver" updated — ROI changed to 0.8%',time:'2026-06-10 20:00'},
+  {type:'red',text:'User Liam Johnson suspended — abuse detected',time:'2026-06-10 17:30'},
+  {type:'blue',text:'Email broadcast sent to 847 users',time:'2026-06-10 14:00'},
+  {type:'green',text:'Admin approved KYC for James Carter',time:'2026-06-10 11:20'},
+  {type:'yellow',text:'Trading spread for BTC/USD updated to 2.0',time:'2026-06-10 09:55'},
+  {type:'blue',text:'CMS: Homepage hero text updated',time:'2026-06-10 08:40'},
+];
+
+// ── PAGES ─────────────────────────────────────────────────────────────────────
+const PAGES = {
+
+// ─ OVERVIEW ─────────────────────────────────────────────────────────────────
+overview(){ return `
+<div class="page-header">
+  <h2>Dashboard Overview</h2>
+  <p>Welcome back. Here's what's happening on Harbor Finance today.</p>
+</div>
+<div class="stat-grid">
+  ${sc('Total Users','1,247','+12 this week','up')}
+  ${sc('Active Investments','$842,300','+$18k today','up')}
+  ${sc('Pending Deposits','8','Needs review','yellow')}
+  ${sc('Pending Withdrawals','3','Needs review','yellow')}
+  ${sc('Pending KYC','5','Awaiting review','yellow')}
+  ${sc('Total Revenue','$126,450','+$4,200 today','up')}
+  ${sc('Total Payouts','$98,200','Last 30 days','')}
+  ${sc('Referral Commissions','$3,840','All time','')}
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+  <div class="tbl-wrap">
+    <div class="tbl-header"><h3>Recent Activity</h3></div>
+    <div style="padding:4px 20px">
+      ${LOGS.slice(0,6).map(l=>`
+      <div class="log-item">
+        <div class="log-dot ${l.type}"></div>
+        <div><div class="log-text">${l.text}</div><div class="log-time">${l.time}</div></div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <div class="tbl-header"><h3>Quick Actions</h3></div>
+    <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${qact('Approve Deposits','deposits','btn-primary')}
+      ${qact('Review Withdrawals','withdrawals','btn-warn')}
+      ${qact('KYC Queue','kyc','btn-ghost')}
+      ${qact('Manage Users','users','btn-ghost')}
+      ${qact('Edit Plans','investments','btn-ghost')}
+      ${qact('Send Notification','notifications','btn-ghost')}
+    </div>
+  </div>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header"><h3>Recent Users</h3><button class="btn btn-ghost btn-sm" onclick="go('users')">View All</button></div>
+  <div class="tbl-overflow">
+  <table>
+    <thead><tr><th>User</th><th>Country</th><th>Balance</th><th>KYC</th><th>Status</th><th>Joined</th></tr></thead>
+    <tbody>
+      ${USERS.slice(0,5).map(u=>`<tr>
+        <td><div class="user-cell"><div class="av">${u.name.split(' ').map(x=>x[0]).join('')}</div><div><div class="name">${u.name}</div><div class="email">${u.email}</div></div></div></td>
+        <td>${u.country}</td>
+        <td>${u.balance}</td>
+        <td>${kycBadge(u.kyc)}</td>
+        <td>${statusBadge(u.status)}</td>
+        <td style="color:var(--text-3)">${u.joined}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+</div>`},
+
+// ─ ACTIVITY LOGS ─────────────────────────────────────────────────────────────
+logs(){ return `
+<div class="page-header page-header-row">
+  <div><h2>Activity Logs</h2><p>Complete audit trail of all admin actions.</p></div>
+  <button class="btn btn-ghost btn-sm" onclick="toast('Logs exported!','success')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <h3>All Logs</h3>
+    <div class="tbl-actions">
+      <select class="filter-sel"><option>All Types</option><option>Login</option><option>Deposit</option><option>Withdrawal</option><option>KYC</option><option>User</option></select>
+      <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search logs..."></div>
+    </div>
+  </div>
+  <div style="padding:4px 20px 12px">
+    ${LOGS.concat(LOGS).map((l,i)=>`
+    <div class="log-item">
+      <div class="log-dot ${l.type}"></div>
+      <div style="flex:1"><div class="log-text">${l.text}</div><div class="log-time">${l.time} &nbsp;·&nbsp; IP: 102.89.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}</div></div>
+    </div>`).join('')}
+  </div>
+</div>`},
+
+// ─ USER MANAGEMENT ───────────────────────────────────────────────────────────
+users(){ return `
+<div class="page-header page-header-row">
+  <div><h2>User Management</h2><p>View, edit, suspend, and manage all registered users.</p></div>
+  <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Add User</button>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <h3>All Users (${USERS.length})</h3>
+    <div class="tbl-actions">
+      <select class="filter-sel"><option>All Status</option><option>Active</option><option>Suspended</option><option>Banned</option></select>
+      <select class="filter-sel"><option>All KYC</option><option>Verified</option><option>Pending</option><option>Rejected</option></select>
+      <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search users..."></div>
+    </div>
+  </div>
+  <div class="tbl-overflow">
+  <table>
+    <thead><tr><th>User</th><th>Country</th><th>Balance</th><th>Invested</th><th>KYC</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${USERS.map(u=>`<tr>
+        <td><div class="user-cell"><div class="av">${u.name.split(' ').map(x=>x[0]).join('')}</div><div><div class="name">${u.name}</div><div class="email">${u.email}</div></div></div></td>
+        <td>${u.country}</td>
+        <td><strong>${u.balance}</strong></td>
+        <td>${u.invested}</td>
+        <td>${kycBadge(u.kyc)}</td>
+        <td>${statusBadge(u.status)}</td>
+        <td style="color:var(--text-3);font-size:12px">${u.joined}</td>
+        <td><div class="act-btns">
+          <button class="btn btn-ghost btn-xs" onclick="viewUser('${u.id}')">View</button>
+          <button class="btn btn-ghost btn-xs" onclick="editBalance('${u.id}','${u.name}','${u.balance}')">Balance</button>
+          ${u.status==='active'?`<button class="btn btn-warn btn-xs" onclick="userAction('suspend','${u.name}')">Suspend</button>`:''}
+          ${u.status==='suspended'?`<button class="btn btn-primary btn-xs" onclick="userAction('activate','${u.name}')">Activate</button>`:''}
+          ${u.status!=='banned'?`<button class="btn btn-danger btn-xs" onclick="userAction('ban','${u.name}')">Ban</button>`:''}
+        </div></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+</div>`},
+
+// ─ KYC MANAGEMENT ────────────────────────────────────────────────────────────
+kyc(){ return `
+<div class="page-header page-header-row">
+  <div><h2>KYC Management</h2><p>Review and action identity verification submissions.</p></div>
+  <span class="badge badge-yellow" style="font-size:13px;padding:5px 12px">${KYC_QUEUE.filter(k=>k.status==='pending').length} Pending</span>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="kycTab(this,'pending')">Pending (${KYC_QUEUE.filter(k=>k.status==='pending').length})</button>
+  <button class="tab" onclick="kycTab(this,'approved')">Approved</button>
+  <button class="tab" onclick="kycTab(this,'rejected')">Rejected (${KYC_QUEUE.filter(k=>k.status==='rejected').length})</button>
+</div>
+<div id="kycList">
+  ${kycCards(KYC_QUEUE.filter(k=>k.status==='pending'))}
+</div>`},
+
+// ─ DEPOSITS ──────────────────────────────────────────────────────────────────
+deposits(){ return `
+<div class="page-header page-header-row">
+  <div><h2>Deposit Management</h2><p>Review and approve user deposit requests.</p></div>
+  <span class="badge badge-yellow" style="font-size:13px;padding:5px 12px">${DEPOSITS.filter(d=>d.status==='pending').length} Pending</span>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="depTab(this,'pending')">Pending (${DEPOSITS.filter(d=>d.status==='pending').length})</button>
+  <button class="tab" onclick="depTab(this,'approved')">Approved</button>
+  <button class="tab" onclick="depTab(this,'rejected')">Rejected</button>
+</div>
+<div class="tbl-wrap" id="depTable">
+  ${depTableHTML(DEPOSITS.filter(d=>d.status==='pending'))}
+</div>`},
+
+// ─ WITHDRAWALS ───────────────────────────────────────────────────────────────
+withdrawals(){ return `
+<div class="page-header page-header-row">
+  <div><h2>Withdrawal Management</h2><p>Review, approve or reject user withdrawal requests.</p></div>
+  <span class="badge badge-yellow" style="font-size:13px;padding:5px 12px">${WITHDRAWALS.filter(w=>w.status==='pending').length} Pending</span>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header">
+    <h3>Withdrawal Requests</h3>
+    <div class="tbl-actions">
+      <select class="filter-sel"><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option></select>
+    </div>
+  </div>
+  <div class="tbl-overflow">
+  <table>
+    <thead><tr><th>ID</th><th>User</th><th>Method</th><th>Wallet / Account</th><th>Amount</th><th>Fee</th><th>Net</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${WITHDRAWALS.map(w=>`<tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text-3)">${w.id}</td>
+        <td>${w.user}</td>
+        <td>${w.method}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text-3);max-width:130px;overflow:hidden;text-overflow:ellipsis">${w.wallet}</td>
+        <td><strong>${w.amount}</strong></td>
+        <td style="color:var(--danger)">${w.fee}</td>
+        <td style="color:var(--primary)">${w.net}</td>
+        <td style="font-size:12px;color:var(--text-3)">${w.date}</td>
+        <td>${statusBadge(w.status)}</td>
+        <td>${w.status==='pending'?`<div class="act-btns">
+          <button class="btn btn-primary btn-xs" onclick="wAction('approve','${w.id}','${w.user}')">Approve</button>
+          <button class="btn btn-danger btn-xs" onclick="wAction('reject','${w.id}','${w.user}')">Reject</button>
+        </div>`:'<span style="color:var(--text-3);font-size:12px">—</span>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+</div>`},
+
+// ─ INVESTMENT PLANS ───────────────────────────────────────────────────────────
+investments(){ return `
+<div class="page-header page-header-row">
+  <div><h2>Investment Plans</h2><p>Create, edit and manage all investment packages.</p></div>
+  <button class="btn btn-primary btn-sm" onclick="openAddPlan()">+ Create Plan</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-bottom:24px">
+  ${INV_PLANS.map(p=>`
+  <div class="tbl-wrap" style="padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">${p.name}</div>
+        <div style="font-size:12px;color:var(--text-3)">ID: ${p.id}</div>
+      </div>
+      <label class="toggle"><input type="checkbox" ${p.active?'checked':''} onchange="toast('Plan ${p.name} '+(this.checked?'enabled':'disabled'),'success')"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="info-row"><span class="k">Min Deposit</span><span class="v">${p.min}</span></div>
+    <div class="info-row"><span class="k">Max Deposit</span><span class="v">${p.max}</span></div>
+    <div class="info-row"><span class="k">ROI</span><span class="v" style="color:var(--primary)">${p.roi} ${p.period}</span></div>
+    <div class="info-row"><span class="k">Duration</span><span class="v">${p.duration}</span></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="editPlan('${p.id}','${p.name}','${p.min}','${p.max}','${p.roi}','${p.duration}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="toast('Plan deleted','error')">Delete</button>
+    </div>
+  </div>`).join('')}
+</div>`},
+
+// ─ TRADING CONTROL ────────────────────────────────────────────────────────────
+trading(){ return `
+<div class="page-header">
+  <h2>Trading Control</h2>
+  <p>Manage trading assets, spreads, leverage, and platform mode.</p>
+</div>
+<div class="form-card" style="margin-bottom:20px">
+  <h3>Platform Mode</h3>
+  <div style="display:flex;gap:24px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border);flex:1;min-width:180px">
+      <label class="toggle"><input type="checkbox" checked onchange="toast('Live trading '+(this.checked?'enabled':'disabled'),'success')"><span class="toggle-slider"></span></label>
+      <div><div style="font-size:13px;font-weight:600">Live Trading</div><div style="font-size:12px;color:var(--text-3)">Real money trades active</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border);flex:1;min-width:180px">
+      <label class="toggle"><input type="checkbox" checked onchange="toast('Demo trading '+(this.checked?'enabled':'disabled'),'success')"><span class="toggle-slider"></span></label>
+      <div><div style="font-size:13px;font-weight:600">Demo Trading</div><div style="font-size:12px;color:var(--text-3)">Paper trading mode</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border);flex:1;min-width:180px">
+      <label class="toggle"><input type="checkbox" onchange="toast('Maintenance mode '+(this.checked?'enabled':'disabled'),'error')"><span class="toggle-slider"></span></label>
+      <div><div style="font-size:13px;font-weight:600">Maintenance Mode</div><div style="font-size:12px;color:var(--text-3)">Disable all trading</div></div>
+    </div>
+  </div>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header"><h3>Trading Assets</h3><button class="btn btn-primary btn-sm" onclick="openAddAsset()">+ Add Asset</button></div>
+  <div class="tbl-overflow">
+  <table>
+    <thead><tr><th>Asset</th><th>Spread</th><th>Leverage</th><th>Mode</th><th>Active</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${ASSETS.map(a=>`<tr>
+        <td><strong>${a.name}</strong></td>
+        <td>${a.spread} pips</td>
+        <td>${a.leverage}</td>
+        <td>${a.mode==='live'?`<span class="badge badge-green">Live</span>`:`<span class="badge badge-blue">Demo</span>`}</td>
+        <td><label class="toggle"><input type="checkbox" ${a.active?'checked':''} onchange="toast('${a.name} '+(this.checked?'enabled':'disabled'),'success')"><span class="toggle-slider"></span></label></td>
+        <td><div class="act-btns">
+          <button class="btn btn-ghost btn-xs" onclick="editAsset('${a.id}','${a.name}','${a.spread}','${a.leverage}')">Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="toast('${a.name} deleted','error')">Remove</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+</div>`},
+
+// ─ REFERRALS ─────────────────────────────────────────────────────────────────
+referrals(){ return `
+<div class="page-header">
+  <h2>Referral Management</h2>
+  <p>Monitor referral activity, commissions, and abuse detection.</p>
+</div>
+<div class="stat-grid" style="margin-bottom:20px">
+  ${sc('Global Rate','3%','Per successful referral','')}
+  ${sc('Total Referrals','14','All time','')}
+  ${sc('Total Commissions','$390','Paid out','')}
+  ${sc('Flagged Accounts','0','Abuse detected','')}
+</div>
+<div class="form-card">
+  <h3>Global Commission Settings</h3>
+  <div class="form-grid">
+    <div class="form-group"><label>Default Commission Rate (%)</label><input type="number" value="3" min="0" max="20"></div>
+    <div class="form-group"><label>Min Deposit to Qualify ($)</label><input type="number" value="100"></div>
+    <div class="form-group"><label>Max Referral Bonus per User ($)</label><input type="number" value="500"></div>
+    <div class="form-group"><label>Referral Payout Delay (days)</label><input type="number" value="7"></div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:8px" onclick="toast('Commission settings saved!','success')">Save Settings</button>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-header"><h3>Top Referrers</h3></div>
+  <div class="tbl-overflow">
+  <table>
+    <thead><tr><th>User</th><th>Referrals</th><th>Commissions Earned</th><th>Rate</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${REFERRALS.map(r=>`<tr>
+        <td>${r.user}</td>
+        <td>${r.referrals}</td>
+        <td style="color:var(--primary);font-weight:600">${r.earned}</td>
+        <td>${r.rate}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td><div class="act-btns">
+          <button class="btn btn-ghost btn-xs" onclick="toast('Viewing ${r.user} network')">Network</button>
+          <button class="btn btn-warn btn-xs" onclick="toast('${r.user} flagged for review','error')">Flag</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+</div>`},
+
+// ─ CMS ───────────────────────────────────────────────────────────────────────
+cms(){ return `
+<div class="page-header">
+  <h2>CMS Management</h2>
+  <p>Edit homepage content, FAQs, blog posts, and media banners.</p>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="cmsTab(this,'homepage')">Homepage</button>
+  <button class="tab" onclick="cmsTab(this,'faqs')">FAQs</button>
+  <button class="tab" onclick="cmsTab(this,'blog')">Blog Posts</button>
+  <button class="tab" onclick="cmsTab(this,'banners')">Banners / Sliders</button>
+</div>
+<div id="cmsContent">${cmsHomepage()}</div>`},
+
+// ─ NOTIFICATIONS ──────────────────────────────────────────────────────────────
+notifications(){ return `
+<div class="page-header">
+  <h2>Notification System</h2>
+  <p>Send emails, push alerts, and SMS broadcasts to your users.</p>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="notifTab(this,'email')">Email Broadcast</button>
+  <button class="tab" onclick="notifTab(this,'push')">Push Notification</button>
+  <button class="tab" onclick="notifTab(this,'sms')">SMS Alert</button>
+</div>
+<div id="notifContent">${notifEmail()}</div>`},
+};
+
+// ── HELPER RENDERERS ─────────────────────────────────────────────────────────
+function sc(label, val, sub, dir){
+  const cls = dir==='up'?'up':dir==='dn'?'dn':dir==='yellow'?'':'';
+  const arrow = dir==='up'?'↑':dir==='dn'?'↓':'';
+  return `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-val">${val}</div><div class="sc-sub"><span class="${cls}">${arrow} ${sub}</span></div></div>`;
+}
+function qact(label, page, cls){
+  return `<button class="btn ${cls}" style="justify-content:center" onclick="go('${page}')">${label}</button>`;
+}
+function statusBadge(s){
+  const map={active:'badge-green',suspended:'badge-yellow',banned:'badge-red',pending:'badge-yellow',approved:'badge-green',rejected:'badge-red'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function kycBadge(s){
+  const map={verified:'badge-green',pending:'badge-yellow',rejected:'badge-red'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function kycCards(list){
+  if(!list.length) return '<div class="empty"><p>No KYC submissions in this category.</p></div>';
+  return `<div class="tbl-wrap"><div class="tbl-overflow"><table>
+    <thead><tr><th>ID</th><th>User</th><th>Document Type</th><th>Submitted</th><th>Documents</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${list.map(k=>`<tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--text-3)">${k.id}</td>
+      <td>${k.user}</td>
+      <td>${k.type}</td>
+      <td style="font-size:12px;color:var(--text-3)">${k.submitted}</td>
+      <td><div class="kyc-docs">${k.docs.map(d=>`<span class="kyc-doc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>${d}</span>`).join('')}</div></td>
+      <td>${kycBadge(k.status)}</td>
+      <td>${k.status==='pending'?`<div class="act-btns">
+        <button class="btn btn-primary btn-xs" onclick="kycAction('approve','${k.id}','${k.user}')">Approve</button>
+        <button class="btn btn-danger btn-xs" onclick="kycAction('reject','${k.id}','${k.user}')">Reject</button>
+        <button class="btn btn-warn btn-xs" onclick="kycAction('resubmit','${k.id}','${k.user}')">Re-upload</button>
+      </div>`:'<span style="color:var(--text-3);font-size:12px">—</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+function depTableHTML(list){
+  if(!list.length) return '<div class="empty" style="padding:40px"><p>No deposits in this category.</p></div>';
+  return `<div class="tbl-overflow"><table>
+    <thead><tr><th>ID</th><th>User</th><th>Method</th><th>Amount</th><th>Date</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${list.map(d=>`<tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--text-3)">${d.id}</td>
+      <td>${d.user}</td>
+      <td>${d.method}</td>
+      <td><strong>${d.amount}</strong></td>
+      <td style="font-size:12px;color:var(--text-3)">${d.date}</td>
+      <td><div class="receipt-thumb" onclick="toast('Receipt preview opened','success')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg></div></td>
+      <td>${statusBadge(d.status)}</td>
+      <td>${d.status==='pending'?`<div class="act-btns">
+        <button class="btn btn-primary btn-xs" onclick="depAction('approve','${d.id}','${d.user}')">Approve</button>
+        <button class="btn btn-danger btn-xs" onclick="depAction('reject','${d.id}','${d.user}')">Reject</button>
+      </div>`:'<span style="color:var(--text-3);font-size:12px">—</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function cmsHomepage(){ return `
+<div class="form-card">
+  <h3>Hero Section</h3>
+  <div class="form-grid"><div class="form-group"><label>Headline</label><input type="text" value="Invest Smarter. Earn Hourly."></div><div class="form-group"><label>Subheadline</label><input type="text" value="Harbor Finance delivers fixed hourly returns."></div></div>
+  <div class="form-group" style="margin-top:16px"><label>CTA Button Text</label><input type="text" value="Start Investing Today"></div>
+  <button class="btn btn-primary" style="margin-top:16px" onclick="toast('Hero section saved!','success')">Save Changes</button>
+</div>
+<div class="form-card">
+  <h3>Stats Bar</h3>
+  <div class="form-grid cols3">
+    <div class="form-group"><label>Stat 1 Label</label><input type="text" value="Total Investors"></div>
+    <div class="form-group"><label>Stat 1 Value</label><input type="text" value="12,450+"></div>
+    <div class="form-group"><label>Stat 1 Icon</label><input type="text" value="users"></div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:16px" onclick="toast('Stats saved!','success')">Save Changes</button>
+</div>
+<div class="form-card">
+  <h3>Upload Banner / Slider Image</h3>
+  <div style="border:2px dashed var(--border);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer" onclick="toast('File picker would open here','success')">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block;color:var(--text-3)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:13px;color:var(--text-3)">Click to upload banner image (JPG, PNG, WebP)</div>
+  </div>
+</div>`;}
+function notifEmail(){ return `
+<div class="form-card">
+  <h3>Email Broadcast</h3>
+  <div class="form-grid">
+    <div class="form-group"><label>Recipient Group</label><select><option>All Users</option><option>Active Investors</option><option>Unverified KYC</option><option>Inactive Users</option></select></div>
+    <div class="form-group"><label>Subject Line</label><input type="text" placeholder="e.g. New Plan Launched!"></div>
+  </div>
+  <div class="form-group" style="margin-top:16px"><label>Email Body</label><textarea placeholder="Write your email content here..." style="min-height:160px"></textarea></div>
+  <div style="display:flex;gap:10px;margin-top:16px">
+    <button class="btn btn-ghost" onclick="toast('Preview email sent to admin','success')">Send Preview</button>
+    <button class="btn btn-primary" onclick="toast('Broadcast sent to 847 users!','success')">Send Broadcast</button>
+  </div>
+</div>`;}
+
+// ── MODAL ACTIONS ─────────────────────────────────────────────────────────────
+function viewUser(id){
+  const u = USERS.find(x=>x.id===id);
+  openModal(`User Profile — ${u.name}`,`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div class="av" style="width:52px;height:52px;font-size:18px">${u.name.split(' ').map(x=>x[0]).join('')}</div>
+      <div><div style="font-size:16px;font-weight:600">${u.name}</div><div style="font-size:13px;color:var(--text-3)">${u.email}</div></div>
+    </div>
+    <div class="info-row"><span class="k">User ID</span><span class="v" style="font-family:monospace">${u.id}</span></div>
+    <div class="info-row"><span class="k">Country</span><span class="v">${u.country}</span></div>
+    <div class="info-row"><span class="k">Balance</span><span class="v" style="color:var(--primary)">${u.balance}</span></div>
+    <div class="info-row"><span class="k">Invested</span><span class="v">${u.invested}</span></div>
+    <div class="info-row"><span class="k">KYC Status</span><span class="v">${kycBadge(u.kyc)}</span></div>
+    <div class="info-row"><span class="k">Account Status</span><span class="v">${statusBadge(u.status)}</span></div>
+    <div class="info-row"><span class="k">Referred By</span><span class="v">${u.ref==='none'?'—':u.ref}</span></div>
+    <div class="info-row"><span class="k">Joined</span><span class="v">${u.joined}</span></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Close</button>
+     <button class="btn btn-warn btn-sm" onclick="closeModal();toast('Password reset email sent!','success')">Reset Password</button>`
+  );
+}
+function editBalance(id, name, bal){
+  openModal(`Edit Balance — ${name}`,`
+    <div class="form-group"><label>Current Balance</label><input type="text" value="${bal}" readonly style="color:var(--text-3)"></div>
+    <div class="form-group" style="margin-top:14px"><label>New Balance ($)</label><input type="number" id="newBal" placeholder="Enter new balance"></div>
+    <div class="form-group" style="margin-top:14px"><label>Reason / Note</label><textarea placeholder="Reason for balance adjustment..."></textarea></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('Balance updated for ${name}','success')">Update Balance</button>`
+  );
+}
+function userAction(action, name){
+  const msg = {suspend:`Suspend ${name}?`,activate:`Activate ${name}'s account?`,ban:`Permanently ban ${name}? This cannot be undone.`};
+  const cls = {suspend:'btn-warn',activate:'btn-primary',ban:'btn-danger'};
+  openModal('Confirm Action',`<p style="color:var(--text-2)">${msg[action]}</p>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn ${cls[action]}" onclick="closeModal();toast('${name} ${action}ed','success')">${action.charAt(0).toUpperCase()+action.slice(1)}</button>`);
+}
+function kycAction(action, id, user){
+  const actions = {approve:'Approve',reject:'Reject',resubmit:'Request Re-upload'};
+  const cls = {approve:'btn-primary',reject:'btn-danger',resubmit:'btn-warn'};
+  openModal(`KYC — ${actions[action]}`,
+    `<p style="color:var(--text-2)">${action==='resubmit'?`Request ${user} to re-upload their documents?`:`${action==='approve'?'Approve':'Reject'} KYC for <strong>${user}</strong>?`}</p>
+    ${action==='reject'?`<div class="form-group" style="margin-top:14px"><label>Rejection Reason</label><textarea placeholder="e.g. Document is blurry, face not visible..."></textarea></div>`:''}`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn ${cls[action]}" onclick="closeModal();toast('KYC ${actions[action].toLowerCase()}d for ${user}','success')">${actions[action]}</button>`);
+}
+function depAction(action, id, user){
+  openModal(`${action==='approve'?'Approve':'Reject'} Deposit`,
+    `<p style="color:var(--text-2)">${action==='approve'?`Approve deposit <strong>${id}</strong> for <strong>${user}</strong>? Funds will be credited to their account.`:`Reject deposit <strong>${id}</strong> for <strong>${user}</strong>?`}</p>
+    ${action==='reject'?`<div class="form-group" style="margin-top:14px"><label>Rejection Reason</label><textarea placeholder="Reason..."></textarea></div>`:''}`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn ${action==='approve'?'btn-primary':'btn-danger'}" onclick="closeModal();toast('Deposit ${id} ${action}d!','success')">${action==='approve'?'Approve':'Reject'}</button>`);
+}
+function wAction(action, id, user){
+  openModal(`${action==='approve'?'Approve':'Reject'} Withdrawal`,
+    `<p style="color:var(--text-2)">${action==='approve'?`Approve withdrawal <strong>${id}</strong> for <strong>${user}</strong>? Funds will be sent to their wallet.`:`Reject withdrawal <strong>${id}</strong>?`}</p>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn ${action==='approve'?'btn-primary':'btn-danger'}" onclick="closeModal();toast('Withdrawal ${id} ${action}d!','success')">${action==='approve'?'Approve':'Reject'}</button>`);
+}
+function openAddPlan(){
+  openModal('Create Investment Plan',`
+    <div class="form-grid">
+      <div class="form-group"><label>Plan Name</label><input type="text" placeholder="e.g. Diamond"></div>
+      <div class="form-group"><label>ROI (%)</label><input type="number" placeholder="e.g. 1.8"></div>
+      <div class="form-group"><label>Min Deposit ($)</label><input type="number" placeholder="e.g. 1000"></div>
+      <div class="form-group"><label>Max Deposit ($)</label><input type="number" placeholder="e.g. 50000"></div>
+      <div class="form-group"><label>Duration (days)</label><input type="number" placeholder="e.g. 60"></div>
+      <div class="form-group"><label>ROI Period</label><select><option>Hourly</option><option>Daily</option><option>Weekly</option></select></div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('New plan created!','success')">Create Plan</button>`);
+}
+function editPlan(id,name,min,max,roi,dur){
+  openModal(`Edit Plan — ${name}`,`
+    <div class="form-grid">
+      <div class="form-group"><label>Plan Name</label><input type="text" value="${name}"></div>
+      <div class="form-group"><label>ROI (%)</label><input type="number" value="${roi.replace('%','')}"></div>
+      <div class="form-group"><label>Min Deposit ($)</label><input type="text" value="${min.replace('$','')}"></div>
+      <div class="form-group"><label>Max Deposit ($)</label><input type="text" value="${max.replace('$','')}"></div>
+      <div class="form-group"><label>Duration</label><input type="text" value="${dur}"></div>
+      <div class="form-group"><label>Status</label><select><option>Active</option><option>Inactive</option></select></div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('Plan ${name} updated!','success')">Save Changes</button>`);
+}
+function openAddAsset(){
+  openModal('Add Trading Asset',`
+    <div class="form-grid">
+      <div class="form-group"><label>Symbol</label><input type="text" placeholder="e.g. GBP/USD"></div>
+      <div class="form-group"><label>Spread (pips)</label><input type="number" placeholder="e.g. 1.5"></div>
+      <div class="form-group"><label>Leverage</label><input type="text" placeholder="e.g. 100x"></div>
+      <div class="form-group"><label>Mode</label><select><option>Live</option><option>Demo</option></select></div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('Asset added!','success')">Add Asset</button>`);
+}
+function editAsset(id,name,spread,lev){
+  openModal(`Edit Asset — ${name}`,`
+    <div class="form-grid">
+      <div class="form-group"><label>Symbol</label><input type="text" value="${name}"></div>
+      <div class="form-group"><label>Spread (pips)</label><input type="number" value="${spread}"></div>
+      <div class="form-group"><label>Leverage</label><input type="text" value="${lev}"></div>
+      <div class="form-group"><label>Mode</label><select><option>Live</option><option>Demo</option></select></div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('${name} updated!','success')">Save Changes</button>`);
+}
+function openAddUser(){
+  openModal('Add New User',`
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name</label><input type="text" placeholder="John Doe"></div>
+      <div class="form-group"><label>Email</label><input type="email" placeholder="john@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" placeholder="Temporary password"></div>
+      <div class="form-group"><label>Country</label><input type="text" placeholder="US"></div>
+      <div class="form-group"><label>Initial Balance ($)</label><input type="number" value="0"></div>
+      <div class="form-group"><label>Role</label><select><option>User</option><option>VIP</option></select></div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="closeModal();toast('User created!','success')">Create User</button>`);
+}
+
+// ── TAB HANDLERS ──────────────────────────────────────────────────────────────
+function kycTab(el, status){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const map = {pending:KYC_QUEUE.filter(k=>k.status==='pending'), approved:KYC_QUEUE.filter(k=>k.status==='approved'), rejected:KYC_QUEUE.filter(k=>k.status==='rejected')};
+  document.getElementById('kycList').innerHTML = kycCards(map[status]||[]);
+}
+function depTab(el, status){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const list = status==='all'?DEPOSITS:DEPOSITS.filter(d=>d.status===status);
+  document.getElementById('depTable').innerHTML = depTableHTML(list);
+}
+function cmsTab(el, tab){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const map = {
+    homepage: cmsHomepage(),
+    faqs:`<div class="form-card"><h3>FAQ Manager</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${['What is Harbor Finance?','How are returns calculated?','Is my investment secure?','How do I withdraw?'].map((q,i)=>`
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+          <div class="form-group"><label>Question</label><input type="text" value="${q}"></div>
+          <div class="form-group" style="margin-top:10px"><label>Answer</label><textarea>Lorem ipsum answer for FAQ ${i+1}...</textarea></div>
+          <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="toast('FAQ saved!','success')">Save</button><button class="btn btn-danger btn-sm" onclick="toast('FAQ deleted','error')">Delete</button></div>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost" style="margin-top:14px" onclick="toast('New FAQ added','success')">+ Add FAQ</button>
+    </div>`,
+    blog:`<div class="form-card"><h3>Blog Posts</h3><button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="toast('New post editor opened','success')">+ New Post</button>
+      <table><thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${['How to Maximize Your Hourly Returns','Understanding Investment Risk','Harbor Finance Q2 Update'].map((t,i)=>`<tr>
+          <td>${t}</td><td>Admin</td><td>2026-06-0${i+8}</td><td>${statusBadge(i===0?'active':'active')}</td>
+          <td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="toast('Editing post')">Edit</button><button class="btn btn-danger btn-xs" onclick="toast('Post deleted','error')">Delete</button></div></td>
+        </tr>`).join('')}
+      </tbody></table></div>`,
+    banners:`<div class="form-card"><h3>Banners & Sliders</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+        ${[1,2,3].map(n=>`<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div style="height:100px;display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--text-3);font-size:12px">Banner ${n}</div>
+          <div style="padding:10px;display:flex;gap:6px"><button class="btn btn-ghost btn-xs" style="flex:1" onclick="toast('Banner replaced','success')">Replace</button><button class="btn btn-danger btn-xs" onclick="toast('Banner deleted','error')">Delete</button></div>
+        </div>`).join('')}
+        <div style="background:var(--surface-2);border:2px dashed var(--border);border-radius:var(--r);height:140px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3);font-size:13px" onclick="toast('Upload banner','success')">+ Upload New</div>
+      </div></div>`
+  };
+  document.getElementById('cmsContent').innerHTML = map[tab]||'';
+}
+function notifTab(el, tab){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const map = {
+    email: notifEmail(),
+    push:`<div class="form-card"><h3>Push Notification</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Target Group</label><select><option>All Users</option><option>Active Only</option><option>New Users</option></select></div>
+        <div class="form-group"><label>Title</label><input type="text" placeholder="Notification title"></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>Message</label><textarea placeholder="Notification body..."></textarea></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="toast('Push preview sent','success')">Preview</button>
+        <button class="btn btn-primary" onclick="toast('Push sent to 1,247 users!','success')">Send Push</button>
+      </div></div>`,
+    sms:`<div class="form-card"><h3>SMS Alert</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Recipient Group</label><select><option>All Verified Users</option><option>VIP Users</option><option>Specific User</option></select></div>
+        <div class="form-group"><label>Sender ID</label><input type="text" value="HarborFin"></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>Message (max 160 chars)</label><textarea placeholder="SMS message..." maxlength="160"></textarea></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="toast('SMS preview sent','success')">Test SMS</button>
+        <button class="btn btn-primary" onclick="toast('SMS broadcast sent!','success')">Send SMS</button>
+      </div></div>`
+  };
+  document.getElementById('notifContent').innerHTML = map[tab]||'';
+}
+</script>
+</body>
+</html>
