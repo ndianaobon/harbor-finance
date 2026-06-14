@@ -5,6 +5,7 @@ const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
 
 const authRoutes         = require('./routes/auth');
+const adminRoutes        = require('./routes/admin');
 const userRoutes         = require('./routes/user');
 const depositRoutes      = require('./routes/deposit');
 const withdrawalRoutes   = require('./routes/withdrawal');
@@ -49,6 +50,7 @@ app.get('/health', (_req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRoutes);
+app.use('/api/admin',         adminRoutes);
 app.use('/api/user',          userRoutes);
 app.use('/api/deposits',      depositRoutes);
 app.use('/api/withdrawals',   withdrawalRoutes);

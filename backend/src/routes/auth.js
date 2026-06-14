@@ -249,12 +249,12 @@ router.post('/login', async (req, res) => {
   }
 
   // Log the login
-  await supabase.from('activity_logs').insert({
+  supabase.from('activity_logs').insert({
     user_id: user.id,
     action:  'login',
     ip:      req.ip,
     meta:    { user_agent: req.headers['user-agent'] },
-  }).catch(() => {});
+  }).then(null, () => {});
 
   const token = signToken(user.id);
   res.json({
@@ -439,11 +439,28 @@ router.post('/reset-password', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   const { data: user } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, balance, tfa_enabled, created_at')
+    .select('id, email, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, referred_by, balance, tfa_enabled, created_at')
     .eq('id', req.user.id)
     .single();
 
   res.json({ user });
+});
+
+// ── PATCH /api/auth/profile ───────────────────────────────────────────────────
+router.patch('/profile', requireAuth, async (req, res) => {
+  const { firstName, lastName, phone, country } = req.body;
+  const updates = {};
+  if (firstName) updates.first_name = firstName.trim();
+  if (lastName)  updates.last_name  = lastName.trim();
+  if (phone)     updates.phone      = phone.trim();
+  if (country)   updates.country    = country.trim();
+
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
+
+  const { error } = await supabase.from('users').update(updates).eq('id', req.user.id);
+  if (error) return res.status(500).json({ error: 'Failed to update profile' });
+
+  res.json({ message: 'Profile updated successfully' });
 });
 
 module.exports = router;

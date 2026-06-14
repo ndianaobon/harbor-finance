@@ -567,35 +567,48 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <script>
+const API = 'https://harbor-finance-production.up.railway.app/api';
+let _pendingUserId = null;
+let _pendingEmail  = null;
+
 // ── SCREEN ROUTING ────────────────────────────────────────────────────────────
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // clear OTP inputs when switching to OTP screens
   if(id.includes('Verify')||id.includes('2fa')) clearOtps();
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
-  // Mock: any non-empty creds pass; wrong pass triggers 2FA or error
-  if(!email || !pass){
-    showAlert('loginAlert','Please enter your email and password.'); return;
-  }
-  // Simulate: demo@harbor.com / Harbor@1234 → goes to 2FA
-  if(email === 'demo@harbor.com' && pass === 'Harbor@1234'){
-    show('sc2faChallenge'); return;
-  }
-  // Any other creds → direct to dashboard (mock, backend validates in production)
-  if(email.includes('@') && pass.length >= 6){
-    window.location.href = 'dashboard.html'; return;
-  }
-  showAlert('loginAlert','Invalid email or password.'); shake('scLogin');
+  if(!email || !pass){ showAlert('loginAlert','Please enter your email and password.'); return; }
+  const btn = document.querySelector('#scLogin .btn-main');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const res  = await fetch(`${API}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password: pass}) });
+    const data = await res.json();
+    if(!res.ok){
+      if(data.requiresVerify){
+        _pendingUserId = data.userId; _pendingEmail = email;
+        document.getElementById('verifyEmail').textContent = email;
+        show('scEmailVerify'); startResend(); return;
+      }
+      showAlert('loginAlert', data.error || 'Invalid email or password.'); shake('scLogin'); return;
+    }
+    if(data.requires2FA){
+      _pendingUserId = data.userId;
+      show('sc2faChallenge'); return;
+    }
+    localStorage.setItem('hbr_token', data.token);
+    localStorage.setItem('hbr_user',  JSON.stringify(data.user));
+    window.location.href = 'dashboard.html';
+  } catch(e){ showAlert('loginAlert','Network error. Please try again.'); shake('scLogin');
+  } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 }
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
-function doRegister(){
+async function doRegister(){
   let ok = true;
   const first = document.getElementById('regFirst').value.trim();
   const last  = document.getElementById('regLast').value.trim();
@@ -611,36 +624,58 @@ function doRegister(){
   if(!first||!last||!email.includes('@')||pass.length<8||pass!==pass2) ok=false;
   if(!terms){ showAlert('regAlert','Please accept the Terms of Service.'); ok=false; }
   if(!ok){ shake('scRegister'); return; }
-  document.getElementById('verifyEmail').textContent = email;
-  show('scEmailVerify'); startResend();
+  const btn = document.querySelector('#scRegister .btn-main');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res  = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({firstName: first, lastName: last, email, password: pass}) });
+    const data = await res.json();
+    if(!res.ok){ showAlert('regAlert', data.error || 'Registration failed. Please try again.'); shake('scRegister'); return; }
+    _pendingUserId = data.userId; _pendingEmail = email;
+    document.getElementById('verifyEmail').textContent = email;
+    show('scEmailVerify'); startResend();
+  } catch(e){ showAlert('regAlert','Network error. Please try again.'); shake('scRegister');
+  } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
 }
 
 // ── FORGOT PASSWORD ────────────────────────────────────────────────────────────
-function doForgot(){
+async function doForgot(){
   const email = document.getElementById('forgotEmail').value.trim();
   if(!email.includes('@')){ showAlert('forgotAlert','Enter a valid email address.','err'); return; }
-  showAlert('forgotAlert','Reset link sent! Check your inbox.','ok');
+  const btn = document.querySelector('#scForgot .btn-main');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await fetch(`${API}/auth/forgot-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email}) });
+    showAlert('forgotAlert','If that email exists, a reset link has been sent.','ok');
+  } catch(e){ showAlert('forgotAlert','Network error. Please try again.','err');
+  } finally { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
 }
 
 // ── RESET PASSWORD ────────────────────────────────────────────────────────────
-function doReset(){
-  const p1 = document.getElementById('resetPass').value;
-  const p2 = document.getElementById('resetPass2').value;
+async function doReset(){
+  const p1    = document.getElementById('resetPass').value;
+  const p2    = document.getElementById('resetPass2').value;
+  const token = new URLSearchParams(window.location.search).get('token');
   if(p1.length < 8){ showAlert('resetAlert','Password must be at least 8 characters.'); return; }
   if(p1 !== p2){ showAlert('resetAlert','Passwords do not match.'); return; }
-  hideAlert('resetAlert');
-  // show success
-  document.getElementById('scReset').innerHTML = `
-    <div style="text-align:center;padding:20px 0">
-      <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <h1>Password updated!</h1>
-      <p class="subtitle">Your password has been changed successfully.</p>
-      <button class="btn-main" style="max-width:260px;margin:12px auto 0" onclick="show('scLogin')">Back to Sign In</button>
-    </div>`;
+  if(!token){ showAlert('resetAlert','Invalid or expired reset link.'); return; }
+  const btn = document.querySelector('#scReset .btn-main');
+  btn.disabled = true; btn.textContent = 'Updating…';
+  try {
+    const res  = await fetch(`${API}/auth/reset-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token, password: p1}) });
+    const data = await res.json();
+    if(!res.ok){ showAlert('resetAlert', data.error || 'Reset failed. Try requesting a new link.'); return; }
+    document.getElementById('scReset').innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <h1>Password updated!</h1>
+        <p class="subtitle">Your password has been changed successfully.</p>
+        <button class="btn-main" style="max-width:260px;margin:12px auto 0" onclick="show('scLogin')">Back to Sign In</button>
+      </div>`;
+  } catch(e){ showAlert('resetAlert','Network error. Please try again.');
+  } finally { btn.disabled = false; btn.textContent = 'Update Password'; }
 }
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
-const OTP_CORRECT = '123456'; // mock — backend sends real code
 function otpNext(el, idx, prefix=''){
   el.classList.toggle('filled', el.value !== '');
   if(el.value && idx < 5){
@@ -661,21 +696,35 @@ function clearOtps(){
     }
   });
 }
-function verifyOTP(type){
+async function verifyOTP(type){
   const prefixMap = {'email':'','phone':'p','2fa-setup':'f','2fa':'t'};
   const code = getOtp(prefixMap[type]||'');
   if(code.length < 6){ return; }
-  if(code !== OTP_CORRECT){
-    const alertMap = {'email':'verifyAlert','phone':'verifyAlert','2fa':'tfaAlert','2fa-setup':'tfaAlert'};
-    const alertId = alertMap[type];
-    if(alertId){ showAlert(alertId,'Incorrect code. The demo code is <strong>123456</strong>.'); }
+
+  if(type === 'email'){
+    try {
+      const res  = await fetch(`${API}/auth/verify-email`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: _pendingUserId, code}) });
+      const data = await res.json();
+      if(!res.ok){ showAlert('verifyAlert', data.error || 'Incorrect code.'); return; }
+      show('sc2faSetup');
+    } catch(e){ showAlert('verifyAlert','Network error.'); }
     return;
   }
-  // correct
-  if(type==='email'){ show('sc2faSetup'); }
-  else if(type==='phone'){ show('scRegSuccess'); }
-  else if(type==='2fa-setup'){ show('scRegSuccess'); }
-  else if(type==='2fa'){ window.location.href='dashboard.html'; }
+
+  if(type === '2fa'){
+    try {
+      const res  = await fetch(`${API}/auth/verify-2fa`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: _pendingUserId, code}) });
+      const data = await res.json();
+      if(!res.ok){ showAlert('tfaAlert', data.error || 'Incorrect code.'); return; }
+      localStorage.setItem('hbr_token', data.token);
+      localStorage.setItem('hbr_user',  JSON.stringify(data.user));
+      window.location.href = 'dashboard.html';
+    } catch(e){ showAlert('tfaAlert','Network error.'); }
+    return;
+  }
+
+  if(type==='2fa-setup'){ show('scRegSuccess'); }
+  if(type==='phone')    { show('scRegSuccess'); }
 }
 
 // OTP keyboard nav (backspace)
@@ -702,6 +751,13 @@ function startResend(){
     if(sec <= 0){ clearInterval(resendInterval); el.textContent=''; }
     else el.textContent = `(${sec}s)`;
   }, 1000);
+}
+async function resendOTP(){
+  if(!_pendingEmail) return;
+  try {
+    await fetch(`${API}/auth/resend-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: _pendingEmail, type: 'email_verify'}) });
+    startResend();
+  } catch(e){}
 }
 
 // ── 2FA METHOD SELECT ────────────────────────────────────────────────────────

@@ -38,11 +38,11 @@ router.post('/admin/broadcast', requireAuth, requireAdmin, async (req, res) => {
   if (error) return res.status(500).json({ error: 'Failed to fetch recipients' });
 
   // Log the broadcast
-  await supabase.from('activity_logs').insert({
+  supabase.from('activity_logs').insert({
     user_id: req.user.id,
     action:  'email_broadcast',
     meta:    { subject, recipient_count: users.length, group: recipientGroup },
-  }).catch(() => {});
+  }).then(null, () => {});
 
   // In production: queue these via a job system (Bull, etc.)
   // For now: return recipient count and note to wire up async sending

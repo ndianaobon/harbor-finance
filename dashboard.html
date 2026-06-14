@@ -433,12 +433,12 @@ select.fi{appearance:none}
 
   <div class="sb-user">
     <div class="sb-user-row">
-      <div class="sb-avatar">
+      <div class="sb-avatar" id="sbAv">
         MF
         <span class="sb-online"></span>
       </div>
       <div>
-        <div class="sb-user-name">MUHAMMAD FAWAD</div>
+        <div class="sb-user-name" id="sbName">MUHAMMAD FAWAD</div>
         <div class="sb-user-status">● online</div>
       </div>
     </div>
@@ -448,7 +448,7 @@ select.fi{appearance:none}
       </div>
       <div>
         <div class="sb-bal-lbl">Balance</div>
-        <div class="sb-bal-val">$725.00</div>
+        <div class="sb-bal-val" id="sbBal">$0.00</div>
       </div>
     </div>
   </div>
@@ -543,8 +543,8 @@ select.fi{appearance:none}
       Verified
     </div>
     <div class="tb-user">
-      <div class="tb-avatar">MF</div>
-      <span class="tb-user-name">Monywoman</span>
+      <div class="tb-avatar" id="tbAv">MF</div>
+      <span class="tb-user-name" id="tbName">—</span>
     </div>
   </div>
 </header>
@@ -561,6 +561,1335 @@ select.fi{appearance:none}
 <div id="toastEl" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;background:var(--surface);border:1px solid var(--primary);color:var(--primary);padding:10px 18px;border-radius:var(--r-lg);font-size:12px;font-weight:600;box-shadow:var(--shadow);max-width:300px;animation:slideUp .25s var(--ease)"></div>
 
 <script>
+/* ─── Auth guard & API config ───────────────────────────── */
+const _token = localStorage.getItem('hbr_token');
+if (!_token) window.location.replace('auth.html');
+
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:4000/api'
+  : 'https://harbor-finance-production.up.railway.app/api';
+
+let _user = null;
+
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token, ...(opts.headers || {}) },
+  });
+  if (r.status === 401) { localStorage.removeItem('hbr_token'); window.location.replace('auth.html'); }
+  return r;
+}
+
+function fmt(n) {
+  return '
+
+  async dashboard() {
+    const u = _user || {};
+    const name = (u.first_name || 'User') + ' ' + (u.last_name || '');
+    const bal  = fmt(u.balance || 0);
+    const joined = fmtDate(u.created_at);
+    const kyc = kycBdg(u.kyc_status);
+    const sts = stsBdg(u.status);
+    let recentRows = '<tr><td colspan="5"><div class="empty" style="padding:20px"><div class="empty-txt">No transactions yet. Fund your account to get started.</div></div></td></tr>';
+    try {
+      const [dRes, wRes] = await Promise.all([
+        apiFetch('/deposits').then(r => r.json()),
+        apiFetch('/withdrawals').then(r => r.json()),
+      ]);
+      const deps = (dRes.deposits || []).map(d => ({type:'Deposit', method:d.method, amount:d.amount, status:d.status, date:d.created_at}));
+      const wds  = (wRes.withdrawals || []).map(w => ({type:'Withdrawal', method:w.method, amount:w.amount, status:w.status, date:w.created_at}));
+      const all  = [...deps, ...wds].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+      if (all.length) {
+        const bdg = s => s==='approved'?'badge-g':s==='pending'?'badge-w':'badge-r';
+        recentRows = all.map(t => `<tr>
+          <td style="color:var(--text-3)">${fmtDate(t.date)}</td>
+          <td>${t.type}</td>
+          <td style="color:var(--text-2)">${t.method}</td>
+          <td style="font-weight:700;${t.type==='Deposit'?'color:var(--primary)':'color:var(--danger)'}">${t.type==='Deposit'?'+':'-'}${fmt(t.amount)}</td>
+          <td><span class="badge ${bdg(t.status)}">${t.status}</span></td>
+        </tr>`).join('');
+      }
+    } catch(e) {}
+    return `
+    <div class="dash-banner c-anim">
+      <div class="db-left">
+        <div class="db-title">Welcome back, ${u.first_name || 'User'} 👋</div>
+        <div class="db-sub">Joined ${joined} &nbsp;·&nbsp; Status: ${sts} &nbsp;·&nbsp; KYC: ${kyc}</div>
+      </div>
+      <div class="db-right">
+        <button class="btn btn-g" onclick="go('fund')">Fund Account</button>
+        <button class="btn btn-o" onclick="go('withdraw')">Withdraw</button>
+      </div>
+    </div>
+    <div class="stat-grid">
+      ${sc('g','wallet','Total Balance',bal,'Account balance','')}
+      ${sc('b','trend','Total Invested','$0.00','No active plans','')}
+      ${sc('w','dollar','Total Returns','$0.00','Start investing','')}
+      ${sc('g','users','Referral Earnings','$0.00','0 referrals','')}
+    </div>
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card card-p c-anim">
+        <div class="card-head">
+          <div><div class="card-title">Portfolio Overview</div><div class="card-sub">Balance activity</div></div>
+          <div style="display:flex;gap:5px" id="ctabs">
+            ${['1W','1M','6M','1Y'].map((t,i)=>`<button class="btn ${i===2?'btn-g':'btn-o'} btn-sm" onclick="switchTab(this)">${t}</button>`).join('')}
+          </div>
+        </div>
+        <div style="height:120px;display:flex;align-items:center;justify-content:center">
+          <p style="font-size:12px;color:var(--text-3)">Chart will populate as your balance grows</p>
+        </div>
+      </div>
+      <div class="card card-p c-anim" style="display:flex;flex-direction:column;gap:8px">
+        <div class="card-head" style="margin-bottom:8px"><div class="card-title">Quick Actions</div></div>
+        ${qa('fund','Fund Account','Deposit to start earning')}
+        ${qa('plans','View Plans','Browse investment packages')}
+        ${qa('kyc','KYC Verification','Complete identity check')}
+        ${qa('settings','Account Settings','Update your profile')}
+      </div>
+    </div>
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title">Recent Transactions</div>
+          <button class="btn btn-o btn-sm" onclick="go('transactions')">View All</button>
+        </div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>${recentRows}</tbody>
+      </table></div>
+    </div>`;
+  },
+
+  fund() {
+    return `
+    <div class="card card-p c-anim" style="max-width:520px">
+      <div class="card-head">
+        <div><div class="card-title">Fund Your Account</div><div class="card-sub">Choose a payment method and deposit amount</div></div>
+      </div>
+      <div class="fg"><label class="flbl">Payment Method</label>
+        <select class="fi" id="fundMethod"><option>Bitcoin (BTC)</option><option>Ethereum (ETH)</option><option>USDT TRC-20</option><option>USDT ERC-20</option><option>Bank Transfer</option></select>
+      </div>
+      <div class="fg"><label class="flbl">Amount (USD)</label>
+        <input type="number" class="fi" id="fundAmount" placeholder="e.g. 500">
+        <div class="fnote">Minimum deposit: $100</div>
+      </div>
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Send to this wallet address:</div>
+        <div style="font-size:13px;font-weight:600;word-break:break-all;color:var(--primary);margin-bottom:10px">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</div>
+        <button class="btn btn-o btn-sm" onclick="copyAddr(this)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy Address
+        </button>
+      </div>
+      <div class="fg"><label class="flbl">Transaction Hash / Payment Proof</label><input type="text" class="fi" id="fundTxHash" placeholder="Paste TX hash here"></div>
+      <div id="fundErr" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
+      <button class="btn btn-g btn-w-lg" id="fundBtn" onclick="submitDeposit()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Submit Deposit
+      </button>
+    </div>`;
+  },
+
+  async transactions() {
+    let rows = '<tr><td colspan="5"><div class="empty" style="padding:28px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div class="empty-txt">No transactions found</div></div></td></tr>';
+    try {
+      const [dRes, wRes] = await Promise.all([
+        apiFetch('/deposits').then(r => r.json()),
+        apiFetch('/withdrawals').then(r => r.json()),
+      ]);
+      const deps = (dRes.deposits || []).map(d => ({type:'Deposit', method:d.method, amount:d.amount, status:d.status, date:d.created_at}));
+      const wds  = (wRes.withdrawals || []).map(w => ({type:'Withdrawal', method:w.method, amount:w.amount, status:w.status, date:w.created_at}));
+      const all  = [...deps, ...wds].sort((a,b) => new Date(b.date)-new Date(a.date));
+      if (all.length) {
+        const bdg = s => s==='approved'?'badge-g':s==='pending'?'badge-w':'badge-r';
+        rows = all.map(t => `<tr>
+          <td style="color:var(--text-3)">${fmtDate(t.date)}</td>
+          <td>${t.type}</td>
+          <td style="color:var(--text-2)">${t.method}</td>
+          <td style="font-weight:700;${t.type==='Deposit'?'color:var(--primary)':'color:var(--danger)'}">${t.type==='Deposit'?'+':'-'}${fmt(t.amount)}</td>
+          <td><span class="badge ${bdg(t.status)}">${t.status}</span></td>
+        </tr>`).join('');
+      }
+    } catch(e) { rows = `<tr><td colspan="5" style="color:var(--danger);padding:16px;text-align:center">Failed to load: ${e.message}</td></tr>`; }
+    return `
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border)">
+        <div class="card-title">Transaction History</div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  },
+
+  withdraw() {
+    return `
+    <div class="card card-p c-anim" style="max-width:520px">
+      <div class="card-head">
+        <div><div class="card-title">Withdraw Funds</div><div class="card-sub" id="wdAvailSub">Available: <strong style="color:var(--primary)">$0.00</strong></div></div>
+      </div>
+      <div class="fg"><label class="flbl">Withdrawal Method</label>
+        <select class="fi" id="wdMethod"><option>Bitcoin (BTC)</option><option>Ethereum (ETH)</option><option>USDT TRC-20</option><option>Bank Transfer</option></select>
+      </div>
+      <div class="fg"><label class="flbl">Wallet Address / Bank Details</label><input type="text" class="fi" id="wdAddress" placeholder="Your wallet address or bank account number"></div>
+      <div class="fg"><label class="flbl">Amount (USD)</label>
+        <input type="number" class="fi" id="wdAmount" placeholder="Enter amount">
+        <div class="fnote">Minimum: $50 · Processing time: up to 24 hours</div>
+      </div>
+      <div id="wdErr" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
+      <button class="btn btn-g btn-w-lg" id="wdBtn" onclick="submitWithdrawal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Request Withdrawal
+      </button>
+    </div>`;
+  },
+
+  wallet() {
+    return `
+    <div style="margin-bottom:16px" class="c-anim">
+      <h2 style="font-size:16px;font-weight:800">My Wallets</h2>
+      <p style="font-size:12px;color:var(--text-2);margin-top:3px">Manage your crypto and fiat balances</p>
+    </div>
+
+    <!-- Wallet Cards -->
+    <div class="stat-grid c-anim" style="margin-bottom:20px">
+      ${walletCard('Bitcoin','BTC','$0.00','0.00000000 BTC','#F7931A')}
+      ${walletCard('Ethereum','ETH','$0.00','0.00000000 ETH','#627EEA')}
+      ${walletCard('USDT TRC-20','USDT','$0.00','0.00 USDT','#26A17B')}
+      ${walletCard('Fiat (USD)','USD','$725.00','Available balance','#58a6ff')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <!-- Deposit Address -->
+      <div class="card card-p c-anim">
+        <div class="card-title" style="margin-bottom:4px">Deposit Address</div>
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Send crypto to this address to fund your wallet</p>
+        <div class="fg"><label class="flbl">Select Currency</label>
+          <select class="fi" id="depCoin" onchange="updateAddr()">
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="ETH">Ethereum (ETH)</option>
+            <option value="USDT">USDT TRC-20</option>
+          </select>
+        </div>
+        <!-- QR -->
+        <div style="text-align:center;margin:14px 0">
+          <div style="width:130px;height:130px;margin:0 auto;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:8px">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+              <rect width="100" height="100" fill="white"/>
+              <rect x="10" y="10" width="30" height="30" fill="black"/><rect x="15" y="15" width="20" height="20" fill="white"/><rect x="20" y="20" width="10" height="10" fill="black"/>
+              <rect x="60" y="10" width="30" height="30" fill="black"/><rect x="65" y="15" width="20" height="20" fill="white"/><rect x="70" y="20" width="10" height="10" fill="black"/>
+              <rect x="10" y="60" width="30" height="30" fill="black"/><rect x="15" y="65" width="20" height="20" fill="white"/><rect x="20" y="70" width="10" height="10" fill="black"/>
+              <rect x="45" y="10" width="10" height="5" fill="black"/><rect x="45" y="20" width="5" height="10" fill="black"/>
+              <rect x="10" y="45" width="5" height="10" fill="black"/><rect x="20" y="45" width="15" height="5" fill="black"/>
+              <rect x="45" y="45" width="10" height="10" fill="black"/><rect x="60" y="45" width="5" height="15" fill="black"/>
+              <rect x="70" y="50" width="10" height="5" fill="black"/><rect x="85" y="45" width="5" height="15" fill="black"/>
+              <rect x="45" y="60" width="10" height="5" fill="black"/><rect x="55" y="65" width="10" height="5" fill="black"/>
+              <rect x="45" y="70" width="5" height="20" fill="black"/><rect x="55" y="75" width="10" height="5" fill="black"/>
+              <rect x="70" y="70" width="5" height="20" fill="black"/><rect x="80" y="75" width="10" height="5" fill="black"/>
+              <rect x="60" y="80" width="5" height="10" fill="black"/>
+            </svg>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:8px">Scan QR to copy address</div>
+        </div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div id="walletAddr" style="font-size:11px;font-family:monospace;color:var(--text-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</div>
+          <button class="btn btn-o btn-sm" onclick="copyAddr(this)">Copy</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);padding:8px;background:rgba(227,179,65,.06);border:1px solid rgba(227,179,65,.2);border-radius:var(--r)">
+          ⚠ Only send <strong id="coinLabel">BTC</strong> to this address. Sending other assets may result in permanent loss.
+        </div>
+      </div>
+
+      <!-- Connect External Wallet -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card card-p c-anim">
+          <div class="card-title" style="margin-bottom:4px">Connect External Wallet</div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Link your Web3 wallet for instant deposits</p>
+          ${wbtn('MetaMask','#F6851B','MM')}
+          ${wbtn('WalletConnect','#3B99FC','WC')}
+          ${wbtn('Coinbase Wallet','#0052FF','CB')}
+          ${wbtn('Trust Wallet','#3375BB','TW')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet Transaction Log -->
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div class="card-title">Wallet Transaction Log</div>
+        <select class="fi" style="width:auto;padding:5px 8px;font-size:11px">
+          <option>All Wallets</option><option>BTC</option><option>ETH</option><option>USDT</option><option>USD</option>
+        </select>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Type</th><th>Asset</th><th>Amount</th><th>Address / Note</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-g">Deposit</span></td><td>USD</td><td style="color:var(--primary);font-weight:600">+$725.00</td><td style="font-size:11px;color:var(--text-3)">Bank Transfer</td><td style="color:var(--text-3)">2026-06-01</td><td><span class="badge badge-g">Confirmed</span></td></tr>
+          <tr><td colspan="6"><div class="empty" style="padding:20px"><div class="empty-txt">No other wallet transactions yet</div></div></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <script>
+    const ADDRS = {
+      BTC:'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      ETH:'0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+      USDT:'TRx9XtVQ7XHThv5ZPiHgVuQ3gQc9maDwNx'
+    };
+    function updateAddr(){
+      const coin = document.getElementById('depCoin').value;
+      document.getElementById('walletAddr').textContent = ADDRS[coin];
+      document.getElementById('coinLabel').textContent = coin;
+    }
+    <\/script>`;
+  },
+
+  async plans() {
+    let cards = '<div class="empty" style="padding:40px"><div class="empty-txt">No plans available at this time.</div></div>';
+    try {
+      const { plans: data } = await apiFetch('/investments/plans').then(r => r.json());
+      if (data && data.length) {
+        cards = '<div class="plan-grid c-anim">' + data.map((p, i) => {
+          const hot = i === Math.floor(data.length / 2);
+          const maxStr = p.max_amount ? fmt(p.max_amount) : 'Unlimited';
+          return `<div class="plan-card ${hot?'hot':''}">
+            ${hot?'<div class="plan-hot">Popular</div>':''}
+            <div class="pl-lbl">${p.name} Plan</div>
+            <div class="pl-rate">${p.roi_rate}%</div>
+            <div class="pl-period">${p.roi_period} · ${p.duration_days}-day plan</div>
+            <div class="pl-sep"></div>
+            <div class="pl-rows">
+              <div class="pl-row"><span class="pl-row-k">Min. Deposit</span><span class="pl-row-v">${fmt(p.min_amount)}</span></div>
+              <div class="pl-row"><span class="pl-row-k">Max. Deposit</span><span class="pl-row-v">${maxStr}</span></div>
+              <div class="pl-row"><span class="pl-row-k">Duration</span><span class="pl-row-v">${p.duration_days} Days</span></div>
+              <div class="pl-row"><span class="pl-row-k">Withdrawals</span><span class="pl-row-v">Anytime</span></div>
+            </div>
+            <button class="btn ${hot?'btn-g':'btn-o'} btn-w" onclick="openInvestModal('${p.id}','${p.name}',${p.min_amount},${p.max_amount||9999999},${p.roi_rate})">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              Invest Now
+            </button>
+          </div>`;
+        }).join('') + '</div>';
+      }
+    } catch(e) { cards = '<div class="empty"><p style="color:var(--danger)">Failed to load plans: ' + e.message + '</p></div>'; }
+    return `
+    <div style="margin-bottom:18px" class="c-anim">
+      <h2 style="font-size:16px;font-weight:800">Investment Plans</h2>
+      <p style="font-size:12px;color:var(--text-2);margin-top:3px">Choose a plan that matches your goals</p>
+    </div>
+    ${cards}
+    <div id="invModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);align-items:center;justify-content:center">
+      <div class="card card-p" style="width:340px;max-width:90vw">
+        <div class="card-title" style="margin-bottom:4px" id="invModalTitle">Invest</div>
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:14px" id="invModalSub"></p>
+        <div class="fg"><label class="flbl">Amount (USD)</label>
+          <input type="number" class="fi" id="invAmt" placeholder="0.00">
+          <div class="fnote" id="invNote"></div>
+        </div>
+        <div id="invErr" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-g" style="flex:1" id="invConfirmBtn" onclick="confirmInvest()">Invest</button>
+          <button class="btn btn-o" onclick="closeInvModal()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  stocks() {
+    return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px" class="c-anim">
+      <div>
+        <h2 style="font-size:16px;font-weight:800">Live Trading</h2>
+        <p style="font-size:12px;color:var(--text-2);margin-top:3px">Real-time charts · Simulated trading environment</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--primary)"><span style="width:7px;height:7px;border-radius:50%;background:var(--primary);animation:pulse 1.5s infinite"></span>Live</span>
+        <select class="fi" style="width:auto;padding:6px 10px;font-size:12px" id="tvSymbol" onchange="loadTV()">
+          <option value="NASDAQ:AAPL">AAPL — Apple</option>
+          <option value="NASDAQ:MSFT">MSFT — Microsoft</option>
+          <option value="NASDAQ:TSLA">TSLA — Tesla</option>
+          <option value="NASDAQ:NVDA">NVDA — NVIDIA</option>
+          <option value="NASDAQ:AMZN">AMZN — Amazon</option>
+          <option value="NASDAQ:META">META — Meta</option>
+          <option value="BITSTAMP:BTCUSD">BTC/USD — Bitcoin</option>
+          <option value="BITSTAMP:ETHUSD">ETH/USD — Ethereum</option>
+          <option value="COINBASE:SOLUSD">SOL/USD — Solana</option>
+          <option value="FX:EURUSD">EUR/USD — Forex</option>
+          <option value="TVC:GOLD">XAU/USD — Gold</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TradingView Chart -->
+    <div class="card c-anim" style="margin-bottom:16px;overflow:hidden">
+      <div id="tvChartWrap" style="height:460px;width:100%;position:relative">
+        <div id="tvLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--surface);z-index:2">
+          <div style="text-align:center;color:var(--text-3)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="animation:spin 1s linear infinite;margin:0 auto 10px;display:block"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            Loading live chart...
+          </div>
+        </div>
+        <!-- TradingView Widget BEGIN -->
+        <div class="tradingview-widget-container" style="height:100%;width:100%">
+          <div id="tradingview_chart" style="height:100%;width:100%"></div>
+        </div>
+        <!-- TradingView Widget END -->
+      </div>
+    </div>
+
+    <!-- Trading Panel + Watchlist -->
+    <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:16px;margin-bottom:16px" class="c-anim">
+      <!-- Buy / Sell Panel -->
+      <div class="card card-p">
+        <div style="display:flex;gap:0;background:var(--surface-2);border-radius:var(--r);padding:3px;margin-bottom:16px" id="tradeTabs">
+          <button class="btn btn-g btn-sm" style="flex:1;justify-content:center" id="buyTab" onclick="tradeTab('buy')">Buy</button>
+          <button class="btn btn-o btn-sm" style="flex:1;justify-content:center" id="sellTab" onclick="tradeTab('sell')">Sell</button>
+        </div>
+        <div class="fg"><label class="flbl">Asset</label>
+          <select class="fi" id="tradeAsset">
+            <option>BTC/USD — Bitcoin</option><option>ETH/USD — Ethereum</option>
+            <option>AAPL — Apple</option><option>TSLA — Tesla</option><option>EUR/USD</option>
+          </select>
+        </div>
+        <div class="fg"><label class="flbl">Order Type</label>
+          <select class="fi"><option>Market Order</option><option>Limit Order</option><option>Stop Loss</option></select>
+        </div>
+        <div class="fg"><label class="flbl">Amount (USD)</label>
+          <div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3)">$</span>
+          <input type="number" class="fi" style="padding-left:26px" placeholder="0.00" id="tradeAmt"></div>
+        </div>
+        <div class="fg"><label class="flbl">Leverage</label>
+          <select class="fi" id="tradeLev">
+            <option>1x (No leverage)</option><option>5x</option><option>10x</option><option>25x</option><option>50x</option><option>100x</option>
+          </select>
+        </div>
+        <div style="background:var(--surface-2);border-radius:var(--r);padding:10px;margin-bottom:14px;font-size:12px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--text-3)">Available Balance</span><span style="font-weight:700;color:var(--primary)">$725.00</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--text-3)">Est. Fee (0.1%)</span><span>$0.00</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Total Cost</span><span style="font-weight:700">$0.00</span></div>
+        </div>
+        <button class="btn btn-g btn-w" id="tradeBtn" onclick="placeTrade()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          Place Buy Order
+        </button>
+        <div style="font-size:11px;color:var(--text-3);text-align:center;margin-top:8px">Simulated trading · No real funds at risk</div>
+      </div>
+
+      <!-- Watchlist -->
+      <div class="card">
+        <div class="card-p" style="border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div class="card-title">Watchlist</div>
+          <span style="font-size:11px;color:var(--text-3)">Live prices</span>
+        </div>
+        <div class="tw">
+        <table>
+          <thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>24h</th><th></th></tr></thead>
+          <tbody>
+            ${stk('AAPL','Apple Inc.','$192.40','+0.63%',true)}
+            ${stk('MSFT','Microsoft Corp.','$415.20','+1.05%',true)}
+            ${stk('TSLA','Tesla Inc.','$248.10','−1.12%',false)}
+            ${stk('NVDA','NVIDIA Corp.','$875.00','+2.41%',true)}
+            ${stk('AMZN','Amazon.com','$182.30','+0.88%',true)}
+            ${stk('META','Meta Platforms','$492.00','+1.60%',true)}
+            ${stk('BTC','Bitcoin','$67,420','+2.34%',true)}
+            ${stk('ETH','Ethereum','$3,518','+1.87%',true)}
+            ${stk('SOL','Solana','$172.30','+3.22%',true)}
+            ${stk('XAU','Gold','$2,341','+0.45%',true)}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trade History -->
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border)"><div class="card-title">Trading History</div></div>
+      <div class="tw"><table>
+        <thead><tr><th>Asset</th><th>Type</th><th>Amount</th><th>Open Price</th><th>Close Price</th><th>P&L</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="td-bold">BTC/USD</td><td><span class="badge badge-g">Buy</span></td><td>$200</td><td>$66,800</td><td>$67,420</td><td style="color:var(--primary);font-weight:600">+$1.86</td><td style="color:var(--text-3)">2026-06-10</td><td><span class="badge badge-g">Closed</span></td></tr>
+          <tr><td class="td-bold">AAPL</td><td><span class="badge badge-g">Buy</span></td><td>$150</td><td>$190.10</td><td>$192.40</td><td style="color:var(--primary);font-weight:600">+$1.81</td><td style="color:var(--text-3)">2026-06-09</td><td><span class="badge badge-g">Closed</span></td></tr>
+          <tr><td class="td-bold">TSLA</td><td><span class="badge badge-r">Sell</span></td><td>$100</td><td>$252.00</td><td>$248.10</td><td style="color:var(--danger);font-weight:600">−$1.55</td><td style="color:var(--text-3)">2026-06-08</td><td><span class="badge badge-g">Closed</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <script>
+    // Load TradingView widget
+    function loadTV(){
+      const sym = (document.getElementById('tvSymbol')||{}).value || 'BITSTAMP:BTCUSD';
+      document.getElementById('tvLoading').style.display='flex';
+      document.getElementById('tradingview_chart').innerHTML='';
+      // Remove old script if present
+      const old = document.getElementById('tvScript');
+      if(old) old.remove();
+      const s = document.createElement('script');
+      s.id = 'tvScript';
+      s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      s.async = true;
+      s.innerHTML = JSON.stringify({
+        autosize:true, symbol:sym, interval:'15', timezone:'Etc/UTC',
+        theme:'dark', style:'1', locale:'en', enable_publishing:false,
+        hide_top_toolbar:false, hide_legend:false, save_image:false,
+        backgroundColor:'rgba(22,27,34,1)', gridColor:'rgba(48,54,61,0.5)',
+        container_id:'tradingview_chart'
+      });
+      document.getElementById('tradingview_chart').appendChild(s);
+      setTimeout(()=>{ document.getElementById('tvLoading').style.display='none'; },2500);
+    }
+    function tradeTab(t){
+      const isBuy = t==='buy';
+      document.getElementById('buyTab').className='btn '+(isBuy?'btn-g':'btn-o')+' btn-sm';
+      document.getElementById('sellTab').className='btn '+(!isBuy?'btn-g':'btn-o')+' btn-sm';
+      document.getElementById('tradeBtn').textContent = (isBuy?'Place Buy Order':'Place Sell Order');
+      document.getElementById('tradeBtn').className='btn '+(isBuy?'btn-g':'btn-r')+' btn-w';
+    }
+    function placeTrade(){
+      const amt = document.getElementById('tradeAmt').value;
+      if(!amt||parseFloat(amt)<=0){ toast('Enter a valid amount'); return; }
+      if(parseFloat(amt)>725){ toast('Insufficient balance'); return; }
+      const asset = document.getElementById('tradeAsset').value.split('—')[0].trim();
+      const lev = document.getElementById('tradeLev').value;
+      toast('Order placed: '+asset+' · $'+amt+' · '+lev);
+    }
+    // Init chart on load
+    setTimeout(loadTV, 100);
+    <\/script>`;
+  },
+
+  copy() {
+    return `
+    <div class="dash-banner c-anim" style="margin-bottom:18px">
+      <div class="db-left">
+        <div class="db-title">Copy Trading</div>
+        <div class="db-sub">Grow your wealth by automatically copying trades of expert traders · Balance: <strong style="color:var(--primary)">$725</strong></div>
+      </div>
+    </div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px" class="c-anim">Expert Traders</div>
+    <div class="trader-grid c-anim">
+      ${trader('TG','TheGoldHuntFx','$5,000','$20,000','14 Days','72.79%','1.9k','51')}
+      ${trader('GC','George Crypto','$1,000','$5,000','30 Days','60.8%','540','24')}
+      ${trader('MB','Mary Beth Christine','$5,000','$20,000','14 Days','72.68%','2.4k','42')}
+      ${trader('RW','Robert Wu','$10,000','$500,000','14 Days','97.85%','52.1k','1.3k')}
+      ${trader('SF','Stephen FX','$20,000','$1,000,000','30 Days','98.9%','121.6k','76')}
+      ${trader('KY','Kristy Young','$50,000','$1,000,000','30 Days','98.2%','85.3k','92')}
+    </div>`;
+  },
+
+  bots() {
+    return `
+    <div class="dash-banner c-anim" style="margin-bottom:18px">
+      <div class="db-left">
+        <div class="db-title">AI Trading Bots</div>
+        <div class="db-sub">Grow your wealth with auto-trading AI bots · Balance: <strong style="color:var(--primary)">$725</strong></div>
+      </div>
+    </div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px" class="c-anim">Trading Bots</div>
+    <div class="plan-grid c-anim">
+      ${bot('Weekly Trading Bot','$1,500','7 days')}
+      ${bot('Monthly Trading Bot','$3,000','30 Days')}
+      ${bot('Annual Trading Bot','$5,000','12 Months')}
+    </div>`;
+  },
+
+  async myinv() {
+    let rows = '<tr><td colspan="6"><div class="empty" style="padding:28px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><div class="empty-txt">No active investments. <a href="#" onclick="go('plans');return false" style="color:var(--primary)">Browse plans →</a></div></div></td></tr>';
+    try {
+      const { investments } = await apiFetch('/investments/mine').then(r => r.json());
+      if (investments && investments.length) {
+        const bdg = s => s==='active'?'badge-g':s==='completed'?'badge-b':'badge-r';
+        rows = investments.map(inv => {
+          const planName = (inv.investment_plans && inv.investment_plans.name) || 'Plan';
+          const matures = inv.matures_at ? fmtDate(inv.matures_at) : '—';
+          return `<tr>
+            <td class="td-bold">${planName}</td>
+            <td>${fmt(inv.amount)}</td>
+            <td style="color:var(--primary)">${inv.roi_rate}% ${inv.roi_period||''}</td>
+            <td style="color:var(--text-3)">${fmtDate(inv.created_at)}</td>
+            <td style="color:var(--text-3)">Matures ${matures}</td>
+            <td><span class="badge ${bdg(inv.status)}">${inv.status}</span></td>
+          </tr>`;
+        }).join('');
+      }
+    } catch(e) { rows = '<tr><td colspan="6" style="color:var(--danger);padding:16px;text-align:center">Failed to load: ' + e.message + '</td></tr>'; }
+    return `
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border)">
+        <div class="card-title">My Investments</div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Plan</th><th>Amount</th><th>Rate</th><th>Started</th><th>Matures</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  },
+
+  async profit() {
+    let totalRoi = 0, lastRoi = 0, roiCount = 0;
+    let rows = '<tr><td colspan="4"><div class="empty" style="padding:28px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg><div class="empty-txt">No ROI history found</div></div></td></tr>';
+    try {
+      const { history } = await apiFetch('/investments/profit-history').then(r => r.json());
+      if (history && history.length) {
+        roiCount = history.length;
+        totalRoi = history.reduce((s,h) => s + Number(h.amount), 0);
+        lastRoi  = Number(history[0].amount);
+        rows = history.map(h => {
+          const planName = (h.investments && h.investments.investment_plans && h.investments.investment_plans.name) || 'Plan';
+          return `<tr>
+            <td class="td-bold">${planName}</td>
+            <td style="color:var(--primary);font-weight:700">+${fmt(h.amount)}</td>
+            <td style="color:var(--text-2)">${h.type || 'ROI'}</td>
+            <td style="color:var(--text-3)">${fmtDate(h.created_at)}</td>
+          </tr>`;
+        }).join('');
+      }
+    } catch(e) {}
+    return `
+    <div class="roi-grid c-anim">
+      <div class="roi-card">
+        <div class="roi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <div><div class="roi-val">${fmt(totalRoi)}</div><div class="roi-lbl">TOTAL RETURNS</div></div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+        <div><div class="roi-val">${fmt(lastRoi)}</div><div class="roi-lbl">LAST RETURN</div></div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg></div>
+        <div><div class="roi-val">${roiCount}</div><div class="roi-lbl">ROI PAYMENTS</div></div>
+      </div>
+    </div>
+    <div class="card c-anim">
+      <div class="card-p" style="border-bottom:1px solid var(--border)">
+        <div class="card-title">Return on Investment History</div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Investment Plan</th><th>Amount</th><th>Type</th><th>Date</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  },
+
+  referrals() {
+    return `
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start" class="c-anim">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card card-p">
+          <div class="card-head"><div class="card-title">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Share Your Referral Link</div>
+          </div></div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:12px">Share your unique referral link with friends and earn rewards when they join:</p>
+          <div class="ref-link-box">
+            <div class="ref-url" id="refUrlTxt">Loading...</div>
+            <button class="btn btn-g btn-sm" onclick="copyRef(this)">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Your Referral ID</div>
+              <div style="font-size:14px;font-weight:800;color:var(--primary);margin-top:3px" id="refCodeTxt">—</div>
+            </div>
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Your Sponsor</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-top:3px" id="refSponsorTxt">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:14px">How Referrals Work</div>
+          <div class="how-ref-grid">
+            <div class="how-ref-step">
+              <div class="hr-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></div>
+              <div class="hr-title">Share Your Link</div>
+              <div class="hr-text">Send your unique referral link to friends</div>
+            </div>
+            <div class="how-ref-step">
+              <div class="hr-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+              <div class="hr-title">Friends Sign Up</div>
+              <div class="hr-text">They register and become your referral</div>
+            </div>
+            <div class="how-ref-step">
+              <div class="hr-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"/><path d="M20 12a2 2 0 000 4H4v-4"/></svg></div>
+              <div class="hr-title">Earn Rewards</div>
+              <div class="hr-text">Receive benefits when they invest</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-p" style="border-bottom:1px solid var(--border)"><div class="card-title">Your Referrals</div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Client Name</th><th>Ref. Level</th><th>Parent</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody><tr><td colspan="5"><div class="empty" style="padding:24px"><div class="empty-txt">No referrals yet</div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-p">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:16px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <div class="card-title">Referral Statistics</div>
+        </div>
+        <div class="ref-stats">
+          <div class="ref-stat-card">
+            <div class="ref-stat-val">0</div>
+            <div class="ref-stat-lbl">Total Referrals · Users</div>
+          </div>
+          <div class="ref-stat-card">
+            <div class="ref-stat-val">$0.00</div>
+            <div class="ref-stat-lbl">Referral Earnings</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  kyc() {
+    return `
+    <div style="margin-bottom:16px" class="c-anim">
+      <h2 style="font-size:16px;font-weight:800">KYC Verification</h2>
+      <p style="font-size:12px;color:var(--text-2);margin-top:3px">Complete identity verification to unlock withdrawals and higher limits</p>
+    </div>
+
+    <!-- Status Banner -->
+    <div style="background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.3);border-radius:var(--r-lg);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px" class="c-anim">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#e3b341">Verification Pending</div>
+        <div style="font-size:12px;color:var(--text-3)">Upload your documents below. Review takes 1–3 business days.</div>
+      </div>
+      <span class="badge" style="background:rgba(227,179,65,.15);color:#e3b341;margin-left:auto">Unverified</span>
+    </div>
+
+    <!-- Steps -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px" class="c-anim">
+      ${kycStep('1','Identity Document','Upload a government-issued ID','done')}
+      ${kycStep('2','Selfie / Liveness','Photo holding your ID','active')}
+      ${kycStep('3','Proof of Address','Recent utility bill or bank statement','pending')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="c-anim">
+      <!-- Document Upload -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:4px">Identity Document</div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Choose your document type and upload clear, readable photos.</p>
+          <div class="fg"><label class="flbl">Document Type</label>
+            <select class="fi" id="docType">
+              <option>Passport</option>
+              <option>National ID Card</option>
+              <option>Driver's License</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="flbl">Front Side</label>
+            ${uploadZone('docFront','Front of document','front')}
+          </div>
+          <div class="fg">
+            <label class="flbl">Back Side</label>
+            ${uploadZone('docBack','Back of document (if applicable)','back')}
+          </div>
+        </div>
+
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:4px">Proof of Address</div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Must be dated within the last 3 months.</p>
+          <div class="fg"><label class="flbl">Document Type</label>
+            <select class="fi">
+              <option>Utility Bill</option>
+              <option>Bank Statement</option>
+              <option>Government Letter</option>
+            </select>
+          </div>
+          <div class="fg">${uploadZone('docPoa','Proof of address document','poa')}</div>
+        </div>
+      </div>
+
+      <!-- Selfie + Info -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:4px">Selfie with ID</div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Take a clear photo of your face while holding your ID document.</p>
+          ${uploadZone('docSelfie','Selfie holding your ID','selfie')}
+          <div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--r);font-size:11px;color:var(--text-3);line-height:1.8">
+            <div>✓ Face must be clearly visible</div>
+            <div>✓ Document text must be readable</div>
+            <div>✓ No hats, sunglasses, or face coverings</div>
+            <div>✓ Good lighting, no glare</div>
+          </div>
+        </div>
+
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:12px">Verification Requirements</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:2">
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Identity document verified
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Selfie pending upload
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Proof of address pending
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Admin review (1–3 days)
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-g btn-w c-anim" onclick="submitKYC()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Submit for Verification
+        </button>
+      </div>
+    </div>
+
+    <script>
+    function submitKYC(){
+      toast('KYC documents submitted! Review takes 1–3 business days.');
+    }
+    function triggerUpload(id){
+      const el = document.createElement('input');
+      el.type='file'; el.accept='image/*,.pdf';
+      el.onchange = function(){
+        if(!this.files[0]) return;
+        const zone = document.getElementById(id);
+        zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+this.files[0].name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Click to replace</div>';
+        zone.style.borderColor='var(--primary)';
+        zone.style.background='var(--primary-dim)';
+      };
+      el.click();
+    }
+    <\/script>`;
+  },
+
+  settings() {
+    return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="c-anim">
+      <div class="card card-p">
+        <div class="card-title" style="margin-bottom:16px">Personal Information</div>
+        <div class="fg"><label class="flbl">First Name</label><input type="text" class="fi" id="stFirst" value=""></div>
+        <div class="fg"><label class="flbl">Last Name</label><input type="text" class="fi" id="stLast" value=""></div>
+        <div class="fg"><label class="flbl">Email Address</label><input type="email" class="fi" id="stEmail" value="" readonly style="opacity:.7"></div>
+        <div class="fg"><label class="flbl">Phone Number</label><input type="tel" class="fi" placeholder="+1 (555) 000-0000"></div>
+        <div class="fg"><label class="flbl">Country</label><select class="fi"><option>United States</option><option>United Kingdom</option><option>Canada</option><option>Nigeria</option><option>Other</option></select></div>
+        <button class="btn btn-g btn-w" id="stSaveBtn" onclick="saveProfile()">Save Changes</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:16px">Change Password</div>
+          <div class="fg"><label class="flbl">Current Password</label><input type="password" class="fi" placeholder="••••••••"></div>
+          <div class="fg"><label class="flbl">New Password</label><input type="password" class="fi" placeholder="••••••••"></div>
+          <div class="fg"><label class="flbl">Confirm Password</label><input type="password" class="fi" placeholder="••••••••"></div>
+          <button class="btn btn-g btn-w" onclick="toast('Password updated successfully!')">Update Password</button>
+        </div>
+        <div class="card card-p">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="card-title">Two-Factor Authentication</div>
+            <span class="badge badge-r" id="tfaBadge">Disabled</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.6">Protect your account with an authenticator app or SMS code on every login.</p>
+          <div style="display:flex;flex-direction:column;gap:8px" id="tfaOptions" style="display:none">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="setup2FA('app')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <div><div style="font-size:13px;font-weight:600">Authenticator App</div><div style="font-size:11px;color:var(--text-3)">Google Authenticator, Authy, 1Password</div></div>
+              <svg style="margin-left:auto;color:var(--text-3)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="setup2FA('sms')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12 19.79 19.79 0 011.61 3.4 2 2 0 013.58 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              <div><div style="font-size:13px;font-weight:600">SMS Code</div><div style="font-size:11px;color:var(--text-3)">Verification code via text message</div></div>
+              <svg style="margin-left:auto;color:var(--text-3)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+          <div id="tfaSetupArea" style="display:none;margin-top:12px">
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:12px">
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Scan with your authenticator app:</div>
+              <div style="width:110px;height:110px;margin:0 auto 8px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:6px">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+                  <rect width="100" height="100" fill="white"/>
+                  <rect x="10" y="10" width="30" height="30" fill="black"/><rect x="15" y="15" width="20" height="20" fill="white"/><rect x="20" y="20" width="10" height="10" fill="black"/>
+                  <rect x="60" y="10" width="30" height="30" fill="black"/><rect x="65" y="15" width="20" height="20" fill="white"/><rect x="70" y="20" width="10" height="10" fill="black"/>
+                  <rect x="10" y="60" width="30" height="30" fill="black"/><rect x="15" y="65" width="20" height="20" fill="white"/><rect x="20" y="70" width="10" height="10" fill="black"/>
+                  <rect x="45" y="10" width="10" height="5" fill="black"/><rect x="45" y="45" width="10" height="10" fill="black"/>
+                  <rect x="60" y="50" width="5" height="10" fill="black"/><rect x="70" y="45" width="15" height="5" fill="black"/>
+                  <rect x="45" y="60" width="5" height="15" fill="black"/><rect x="55" y="65" width="15" height="5" fill="black"/>
+                  <rect x="75" y="65" width="15" height="5" fill="black"/><rect x="75" y="75" width="5" height="15" fill="black"/>
+                </svg>
+              </div>
+              <div style="font-family:monospace;font-size:11px;color:var(--text-3);background:var(--surface-3);padding:5px 10px;border-radius:4px;display:inline-block">HBRF-X7KL-29QM-4TPN</div>
+            </div>
+            <div class="fg"><label class="flbl">Enter 6-digit code to confirm</label>
+              <input type="text" class="fi" id="tfa2Code" placeholder="000000" maxlength="6" inputmode="numeric">
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-g" style="flex:1" onclick="confirm2FA()">Enable 2FA</button>
+              <button class="btn btn-o" onclick="cancel2FA()">Cancel</button>
+            </div>
+          </div>
+          <button class="btn btn-o btn-w" id="tfaEnableBtn" onclick="show2FAOptions()" style="margin-top:0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Enable 2FA
+          </button>
+        </div>
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:8px">Notification Preferences</div>
+          ${notif('Email notifications for deposits & withdrawals',true)}
+          ${notif('ROI credit alerts',true)}
+          ${notif('Referral activity updates',false)}
+          ${notif('Platform news & announcements',false)}
+        </div>
+        <div class="card card-p">
+          <div class="card-title" style="margin-bottom:8px">Session & Security</div>
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Member since: <strong style="color:var(--text)" id="stJoined">—</strong></div>
+          <button class="btn btn-o btn-w" onclick="toast('All other sessions terminated.')">Sign Out All Devices</button>
+        </div>
+      </div>
+    </div>`;
+  }
+};
+
+/* ─── HTML helpers ────────────────────────────────────────── */
+function sc(color, icon, lbl, val, chg, dir) {
+  const icons = {
+    wallet:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+    trend:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+    dollar:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+    users:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>'
+  };
+  return `<div class="sc c-anim">
+    <div class="sc-icon sci-${color}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[icon]}</svg></div>
+    <div><div class="sc-lbl">${lbl}</div><div class="sc-val">${val}</div><div class="sc-chg ${dir}">${chg}</div></div>
+  </div>`;
+}
+
+function qa(page, title, sub) {
+  return `<div class="qa" onclick="go('${page}')">
+    <div class="qa-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></div>
+    <div><div class="qa-title">${title}</div><div class="qa-sub">${sub}</div></div>
+    <svg style="margin-left:auto;color:var(--text-3)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>`;
+}
+
+function plan(name, rate, days, min, max, hot) {
+  return `<div class="plan-card ${hot?'hot':''}">
+    ${hot?`<div class="plan-hot">Popular</div>`:''}
+    <div class="pl-lbl">${name} Plan</div>
+    <div class="pl-rate">${rate}%</div>
+    <div class="pl-period">per hour · ${days}-day plan</div>
+    <div class="pl-sep"></div>
+    <div class="pl-rows">
+      <div class="pl-row"><span class="pl-row-k">Min. Deposit</span><span class="pl-row-v">${min}</span></div>
+      <div class="pl-row"><span class="pl-row-k">Max. Deposit</span><span class="pl-row-v">${max}</span></div>
+      <div class="pl-row"><span class="pl-row-k">Duration</span><span class="pl-row-v">${days} Days</span></div>
+      <div class="pl-row"><span class="pl-row-k">Withdrawals</span><span class="pl-row-v">Anytime</span></div>
+    </div>
+    <button class="btn ${hot?'btn-g':'btn-o'} btn-w" onclick="toast('Opening investment form for ${name} Plan...')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Invest Now
+    </button>
+  </div>`;
+}
+
+function bot(name, amount, dur) {
+  return `<div class="plan-card">
+    <div style="display:inline-flex;padding:3px 10px;border-radius:50px;background:var(--primary-dim);color:var(--primary);font-size:11px;font-weight:700;margin-bottom:12px">${name}</div>
+    <div class="pl-rows">
+      <div class="pl-row"><span class="pl-row-k">Amount</span><span class="pl-row-v">${amount}</span></div>
+      <div class="pl-row"><span class="pl-row-k">Trade Duration</span><span class="pl-row-v">${dur}</span></div>
+    </div>
+    <button class="btn btn-g btn-w" onclick="toast('Purchasing ${name}...')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Purchase
+    </button>
+  </div>`;
+}
+
+function trader(init, name, minC, maxC, dur, win, foll, trades) {
+  return `<div class="trader-card">
+    <div class="tc-head">
+      <div class="tc-av">${init}</div>
+      <div class="tc-name">${name}</div>
+    </div>
+    <div class="tc-stats">
+      <div class="tc-stat"><div class="tc-stat-l">Min. Capital</div><div class="tc-stat-v">${minC}</div></div>
+      <div class="tc-stat"><div class="tc-stat-l">Max. Capital</div><div class="tc-stat-v">${maxC}</div></div>
+      <div class="tc-stat"><div class="tc-stat-l">Duration</div><div class="tc-stat-v">${dur}</div></div>
+      <div class="tc-stat"><div class="tc-stat-l">Win %</div><div class="tc-stat-v up">${win}</div></div>
+      <div class="tc-stat"><div class="tc-stat-l">Followers</div><div class="tc-stat-v">${foll}</div></div>
+      <div class="tc-stat"><div class="tc-stat-l">Active Trades</div><div class="tc-stat-v">${trades}</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-2);margin-bottom:6px">Amount to Invest</div>
+    <div class="tc-invest-row">
+      <div class="tc-invest-input"><span>$</span><input type="number" placeholder="0.00"></div>
+      <button class="btn btn-g btn-sm" onclick="toast('Invest order submitted!')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Invest
+      </button>
+    </div>
+  </div>`;
+}
+
+function stk(sym, name, price, chg, up) {
+  return `<tr>
+    <td class="td-bold">${sym}</td>
+    <td>${name}</td>
+    <td style="font-weight:600;color:var(--text)">${price}</td>
+    <td><span class="badge ${up?'badge-g':'badge-r'}">${chg}</span></td>
+    <td><button class="btn ${up?'btn-g':'btn-o'} btn-sm" onclick="toast('Buy order placed for ${sym}')">Buy</button></td>
+  </tr>`;
+}
+
+function wbtn(name, color, init) {
+  return `<button class="wallet-btn" onclick="toast('Connecting to ${name}...')">
+    <div class="wbicon" style="background:${color}22;border:1px solid ${color}44">
+      <div style="width:14px;height:14px;border-radius:50%;background:${color}"></div>
+    </div>
+    <div><div class="wb-name">${name}</div><div class="wb-sub">Connect your ${name} wallet</div></div>
+    <svg style="margin-left:auto;color:var(--text-3)" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>`;
+}
+
+function walletCard(name, ticker, bal, sub, color) {
+  return `<div class="sc c-anim" style="cursor:default">
+    <div class="sc-icon" style="background:${color}18;border:1px solid ${color}33">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"/><path d="M20 12a2 2 0 000 4H4v-4"/></svg>
+    </div>
+    <div>
+      <div class="sc-lbl">${name} <span style="font-size:10px;color:var(--text-3)">(${ticker})</span></div>
+      <div class="sc-val">${bal}</div>
+      <div class="sc-chg" style="color:var(--text-3)">${sub}</div>
+    </div>
+  </div>`;
+}
+
+function kycStep(num, title, desc, state) {
+  const colors = {done:'var(--primary)',active:'#e3b341',pending:'var(--text-3)'};
+  const bg = {done:'var(--primary-dim)',active:'rgba(227,179,65,.1)',pending:'var(--surface-2)'};
+  const border = {done:'var(--primary)',active:'rgba(227,179,65,.4)',pending:'var(--border)'};
+  const icon = state==='done'
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${colors[state]}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+    : `<span style="font-size:11px;font-weight:700;color:${colors[state]}">${num}</span>`;
+  return `<div style="background:${bg[state]};border:1px solid ${border[state]};border-radius:var(--r-lg);padding:14px;text-align:center">
+    <div style="width:32px;height:32px;border-radius:50%;background:${colors[state]}22;border:2px solid ${border[state]};display:flex;align-items:center;justify-content:center;margin:0 auto 8px">${icon}</div>
+    <div style="font-size:12px;font-weight:600;color:${colors[state]};margin-bottom:4px">${title}</div>
+    <div style="font-size:11px;color:var(--text-3)">${desc}</div>
+  </div>`;
+}
+
+function uploadZone(id, label, type) {
+  return `<div id="${id}" onclick="triggerUpload('${id}')" style="border:2px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block;color:var(--text-3)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:12px;color:var(--text-2);font-weight:500">${label}</div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:3px">JPG, PNG or PDF · Max 5MB</div>
+  </div>`;
+}
+
+function notif(label, checked) {
+  const id = 'n'+Math.random().toString(36).slice(2);
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-2)">
+    <label for="${id}" style="font-size:12px;color:var(--text-2);cursor:pointer">${label}</label>
+    <input type="checkbox" id="${id}" ${checked?'checked':''} style="accent-color:var(--primary);width:14px;height:14px;cursor:pointer">
+  </div>`;
+}
+
+/* ─── Navigation ─────────────────────────────────────────── */
+const TITLES = {
+  dashboard:'Dashboard', fund:'Fund Account', transactions:'Transactions',
+  withdraw:'Withdraw', wallet:'My Wallets', plans:'Investment Plans',
+  stocks:'Live Trading', copy:'Copy Trading', bots:'AI Trading Bots',
+  myinv:'My Investments', profit:'Profit History', referrals:'Referrals',
+  kyc:'KYC Verification', settings:'Account Settings'
+};
+
+async function go(key) {
+  if (!PAGES[key]) return;
+  document.getElementById('tbTitle').textContent = TITLES[key] || key;
+  document.querySelectorAll('.ni').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === key);
+  });
+  document.getElementById('pc').innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--text-3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>Loading...</div>';
+  try {
+    const pageHtml = await PAGES[key]();
+    document.getElementById('pc').innerHTML = pageHtml;
+    document.getElementById('pc').querySelectorAll('script').forEach(s => {
+      const ns = document.createElement('script');
+      ns.textContent = s.textContent;
+      document.body.appendChild(ns).remove();
+    });
+  } catch(e) {
+    document.getElementById('pc').innerHTML = '<div class="empty"><p style="color:var(--danger)">Failed to load: ' + e.message + '</p></div>';
+  }
+  if (key === 'referrals' && _user) {
+    const code = _user.referral_code || '';
+    const el = id => document.getElementById(id);
+    if (el('refUrlTxt'))     el('refUrlTxt').textContent     = 'https://harborfinance.net/ref/' + code;
+    if (el('refCodeTxt'))    el('refCodeTxt').textContent    = code;
+    if (el('refSponsorTxt')) el('refSponsorTxt').textContent = _user.referred_by ? 'Referral member' : 'None';
+  }
+  if (key === 'settings' && _user) {
+    const u = _user;
+    const el = id => document.getElementById(id);
+    if (el('stFirst'))  el('stFirst').value  = u.first_name || '';
+    if (el('stLast'))   el('stLast').value   = u.last_name  || '';
+    if (el('stEmail'))  el('stEmail').value  = u.email      || '';
+    if (el('stJoined')) el('stJoined').textContent = fmtDate(u.created_at);
+  }
+  if (key === 'withdraw' && _user) {
+    const sub = document.getElementById('wdAvailSub');
+    if (sub) sub.innerHTML = 'Available: <strong style="color:var(--primary)">' + fmt(_user.balance || 0) + '</strong>';
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+  if (window.innerWidth <= 768) closeSB();
+}
+
+/* ─── Sidebar ────────────────────────────────────────────── */
+function toggleSB() {
+  const s = document.getElementById('sb');
+  const o = document.getElementById('sbOv');
+  const open = s.classList.toggle('open');
+  o.style.display = open ? 'block' : 'none';
+}
+function closeSB() {
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sbOv').style.display = 'none';
+}
+
+/* ─── Nav item clicks ────────────────────────────────────── */
+document.querySelectorAll('.ni').forEach(el => {
+  el.addEventListener('click', () => go(el.dataset.page));
+});
+
+/* ─── Chart tab ──────────────────────────────────────────── */
+function switchTab(btn) {
+  document.querySelectorAll('#ctabs .btn').forEach(b => {
+    b.className = 'btn btn-o btn-sm';
+  });
+  btn.className = 'btn btn-g btn-sm';
+}
+
+/* ─── Copy helpers ───────────────────────────────────────── */
+function copyAddr(btn) {
+  navigator.clipboard?.writeText('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh').catch(()=>{});
+  const t = btn.textContent;
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => btn.textContent = t, 2000);
+}
+function copyRef(btn) {
+  const code = (_user && _user.referral_code) ? _user.referral_code : '';
+  navigator.clipboard?.writeText('https://harborfinance.net/ref/' + code).catch(()=>{});
+  btn.textContent = '✓ Copied';
+  setTimeout(() => btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`, 2000);
+}
+
+/* ─── 2FA helpers ───────────────────────────────────────── */
+function show2FAOptions(){
+  const opts = document.getElementById('tfaOptions');
+  if(opts){ opts.style.display='flex'; opts.style.flexDirection='column'; opts.style.gap='8px'; }
+  const btn = document.getElementById('tfaEnableBtn');
+  if(btn) btn.style.display='none';
+}
+function setup2FA(method){
+  const opts = document.getElementById('tfaOptions');
+  if(opts) opts.style.display='none';
+  const area = document.getElementById('tfaSetupArea');
+  if(area) area.style.display='block';
+}
+function confirm2FA(){
+  const code = (document.getElementById('tfa2Code')||{}).value||'';
+  if(code.length < 6){ toast('Enter the 6-digit code from your app'); return; }
+  if(code === '123456'){
+    const area = document.getElementById('tfaSetupArea');
+    if(area) area.style.display='none';
+    const badge = document.getElementById('tfaBadge');
+    if(badge){ badge.textContent='Enabled'; badge.className='badge badge-g'; }
+    const btn = document.getElementById('tfaEnableBtn');
+    if(btn){ btn.textContent='Disable 2FA'; btn.style.display='block'; btn.onclick=disable2FA; }
+    toast('2FA enabled successfully!');
+  } else {
+    toast('Incorrect code. Demo code is 123456');
+  }
+}
+function disable2FA(){
+  const badge = document.getElementById('tfaBadge');
+  if(badge){ badge.textContent='Disabled'; badge.className='badge badge-r'; }
+  const btn = document.getElementById('tfaEnableBtn');
+  if(btn){ btn.textContent='Enable 2FA'; btn.onclick=show2FAOptions; }
+  toast('2FA has been disabled');
+}
+function cancel2FA(){
+  const area = document.getElementById('tfaSetupArea');
+  if(area) area.style.display='none';
+  const btn = document.getElementById('tfaEnableBtn');
+  if(btn) btn.style.display='block';
+}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+let _tt;
+function toast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.style.display = 'none', 3000);
+}
+
+
+/* ─── Form action handlers ────────────────────────────────── */
+async function submitDeposit() {
+  const method  = (document.getElementById('fundMethod') || {}).value || '';
+  const amount  = (document.getElementById('fundAmount') || {}).value || '';
+  const txHash  = ((document.getElementById('fundTxHash') || {}).value || '').trim();
+  const errEl   = document.getElementById('fundErr');
+  const btn     = document.getElementById('fundBtn');
+  if (errEl) errEl.style.display = 'none';
+  if (!method || !amount || Number(amount) <= 0) {
+    if (errEl) { errEl.textContent = 'Please select a method and enter a valid amount.'; errEl.style.display = 'block'; } return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    const r = await apiFetch('/deposits', { method: 'POST', body: JSON.stringify({ method, amount: Number(amount), txHash }) });
+    const d = await r.json();
+    if (!r.ok) { if (errEl) { errEl.textContent = d.error || 'Submission failed.'; errEl.style.display = 'block'; } return; }
+    toast('Deposit submitted! Pending admin approval.');
+    go('transactions');
+  } catch(e) { if (errEl) { errEl.textContent = 'Network error. Try again.'; errEl.style.display = 'block'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Submit Deposit'; } }
+}
+
+async function submitWithdrawal() {
+  const method  = (document.getElementById('wdMethod') || {}).value || '';
+  const address = ((document.getElementById('wdAddress') || {}).value || '').trim();
+  const amount  = (document.getElementById('wdAmount') || {}).value || '';
+  const errEl   = document.getElementById('wdErr');
+  const btn     = document.getElementById('wdBtn');
+  if (errEl) errEl.style.display = 'none';
+  if (!method || !address || !amount || Number(amount) <= 0) {
+    if (errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; } return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    const r = await apiFetch('/withdrawals', { method: 'POST', body: JSON.stringify({ method, walletAddress: address, amount: Number(amount) }) });
+    const d = await r.json();
+    if (!r.ok) { if (errEl) { errEl.textContent = d.error || 'Withdrawal failed.'; errEl.style.display = 'block'; } return; }
+    if (_user) { _user.balance = Math.max(0, Number(_user.balance) - Number(amount)); document.getElementById('sbBal').textContent = fmt(_user.balance); }
+    toast('Withdrawal submitted! Processing within 24 hours.');
+    go('transactions');
+  } catch(e) { if (errEl) { errEl.textContent = 'Network error. Try again.'; errEl.style.display = 'block'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Request Withdrawal'; } }
+}
+
+let _invPlanId = null;
+function openInvestModal(planId, planName, minAmt, maxAmt, rate) {
+  _invPlanId = planId;
+  const modal = document.getElementById('invModal');
+  if (!modal) return;
+  document.getElementById('invModalTitle').textContent = 'Invest in ' + planName + ' Plan';
+  document.getElementById('invModalSub').textContent   = rate + '% per period · Min: ' + fmt(minAmt);
+  document.getElementById('invNote').textContent       = 'Your balance: ' + fmt(_user ? _user.balance : 0);
+  document.getElementById('invErr').style.display      = 'none';
+  document.getElementById('invAmt').value              = '';
+  modal.style.display = 'flex';
+}
+function closeInvModal() { const m = document.getElementById('invModal'); if (m) m.style.display = 'none'; }
+async function confirmInvest() {
+  const amount = Number(((document.getElementById('invAmt') || {}).value) || 0);
+  const errEl  = document.getElementById('invErr');
+  const btn    = document.getElementById('invConfirmBtn');
+  if (errEl) errEl.style.display = 'none';
+  if (!amount || amount <= 0 || !_invPlanId) { if (errEl) { errEl.textContent = 'Enter a valid amount.'; errEl.style.display = 'block'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+  try {
+    const r = await apiFetch('/investments', { method: 'POST', body: JSON.stringify({ planId: _invPlanId, amount }) });
+    const d = await r.json();
+    if (!r.ok) { if (errEl) { errEl.textContent = d.error || 'Investment failed.'; errEl.style.display = 'block'; } return; }
+    closeInvModal();
+    if (_user) { _user.balance = Math.max(0, Number(_user.balance) - amount); document.getElementById('sbBal').textContent = fmt(_user.balance); }
+    toast(d.message || 'Investment activated!');
+    go('myinv');
+  } catch(e) { if (errEl) { errEl.textContent = 'Network error. Try again.'; errEl.style.display = 'block'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Invest'; } }
+}
+
+async function saveProfile() {
+  const firstName = ((document.getElementById('stFirst') || {}).value || '').trim();
+  const lastName  = ((document.getElementById('stLast')  || {}).value || '').trim();
+  const btn = document.getElementById('stSaveBtn');
+  if (!firstName || !lastName) { toast('Please enter your first and last name.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const r = await apiFetch('/auth/profile', { method: 'PATCH', body: JSON.stringify({ firstName, lastName }) });
+    const d = await r.json();
+    if (r.ok) {
+      if (_user) { _user.first_name = firstName; _user.last_name = lastName; }
+      const nameEl = document.getElementById('sbName');
+      const tbNmEl = document.getElementById('tbName');
+      if (nameEl) nameEl.textContent = (firstName + ' ' + lastName).toUpperCase();
+      if (tbNmEl) tbNmEl.textContent = firstName;
+      toast('Profile updated successfully!');
+    } else { toast(d.error || 'Update failed.'); }
+  } catch(e) { toast('Network error. Try again.'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; } }
+}
+
+function doLogout() {
+  localStorage.removeItem('hbr_token');
+  localStorage.removeItem('hbr_user');
+  window.location.replace('auth.html');
+}
+
+/* ─── Init ───────────────────────────────────────────────── */
+async function init() {
+  try {
+    const r = await apiFetch('/auth/me');
+    if (!r.ok) { localStorage.removeItem('hbr_token'); window.location.replace('auth.html'); return; }
+    const { user } = await r.json();
+    _user = user;
+    const fn = user.first_name || '';
+    const ln = user.last_name  || '';
+    const nameEl = document.getElementById('sbName');
+    const balEl  = document.getElementById('sbBal');
+    const avEl   = document.getElementById('sbAv');
+    const tbAvEl = document.getElementById('tbAv');
+    const tbNmEl = document.getElementById('tbName');
+    if (nameEl) nameEl.textContent = (fn + ' ' + ln).toUpperCase();
+    if (balEl)  balEl.textContent  = fmt(user.balance || 0);
+    if (avEl)   { const txt = avEl.childNodes[0]; if(txt) txt.textContent = ((fn[0]||'')+(ln[0]||'')).toUpperCase()||'U'; }
+    if (tbAvEl) tbAvEl.textContent = ((fn[0]||'')+(ln[0]||'')).toUpperCase()||'U';
+    if (tbNmEl) tbNmEl.textContent = fn || user.email;
+  } catch(e) {
+    localStorage.removeItem('hbr_token');
+    window.location.replace('auth.html');
+    return;
+  }
+  go('dashboard');
+}
+init();
+</script>
+</body>
+</html>
+ + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtDate(s) {
+  return s ? new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+}
+function kycBdg(s) {
+  const m = { verified: ['badge-g','Verified'], pending: ['badge-w','Pending Review'],
+              rejected: ['badge-r','Rejected'], unverified: ['badge-w','Not Submitted'] };
+  const [cls, lbl] = m[s] || ['badge-w','Not Submitted'];
+  return '<span class="badge ' + cls + '">' + lbl + '</span>';
+}
+function stsBdg(s) {
+  const m = { active: 'badge-g', suspended: 'badge-w', banned: 'badge-r' };
+  return '<span class="badge ' + (m[s] || 'badge-g') + '">' + (s || 'active') + '</span>';
+}
+
 /* ─── Page content templates ─────────────────────────────── */
 const PAGES = {
 

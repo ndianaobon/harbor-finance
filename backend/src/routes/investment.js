@@ -80,6 +80,16 @@ router.get('/profit-history', requireAuth, async (req, res) => {
   res.json({ history: data });
 });
 
+// GET /api/investments/plans/admin — all plans including inactive (admin only)
+router.get('/plans/admin', requireAuth, requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('investment_plans')
+    .select('*')
+    .order('min_amount', { ascending: true });
+  if (error) return res.status(500).json({ error: 'Failed to fetch plans' });
+  res.json({ plans: data });
+});
+
 // ── Admin: manage plans ───────────────────────────────────────────────────────
 router.post('/plans', requireAuth, requireAdmin, async (req, res) => {
   const { name, minAmount, maxAmount, roiRate, roiPeriod, durationDays } = req.body;

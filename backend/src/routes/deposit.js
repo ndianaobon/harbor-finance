@@ -73,11 +73,11 @@ router.patch('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
 
   await supabase.from('deposits').update(updates).eq('id', deposit.id);
 
-  await supabase.from('activity_logs').insert({
+  supabase.from('activity_logs').insert({
     user_id: req.user.id,
     action:  `deposit_${action}`,
     meta:    { deposit_id: deposit.id, amount: deposit.amount },
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.json({ message: `Deposit ${action}d successfully` });
 });
