@@ -567,7 +567,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <script>
-const API = 'https://harbor-finance-production.up.railway.app/api';
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:4000/api'
+  : 'https://harbor-finance-production.up.railway.app/api';
 let _pendingUserId = null;
 let _pendingEmail  = null;
 
@@ -755,7 +757,7 @@ function startResend(){
 async function resendOTP(){
   if(!_pendingEmail) return;
   try {
-    await fetch(`${API}/auth/resend-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: _pendingEmail, type: 'email_verify'}) });
+    await fetch(`${API}/auth/resend-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: _pendingUserId, type: 'email_verify'}) });
     startResend();
   } catch(e){}
 }

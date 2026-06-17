@@ -1352,8 +1352,35 @@ function fmt(n) {
     </div>
 
     <script>
-    function submitKYC(){
-      toast('KYC documents submitted! Review takes 1–3 business days.');
+    async function submitKYC(){
+      const docType = document.getElementById('docType')?.value;
+      const frontEl = document.getElementById('docFront');
+      const selfieEl = document.getElementById('selfieZone');
+      // Check files were selected (we store filename in dataset)
+      if (!frontEl?.dataset.fileName) { toast('Please upload the front of your ID document.','error'); return; }
+      if (!selfieEl?.dataset.fileName) { toast('Please upload your selfie photo.','error'); return; }
+      const btn = document.querySelector('[onclick="submitKYC()"]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+      try {
+        // In production: upload files to Supabase Storage first to get public URLs.
+        // For now we send placeholder URLs so the DB record is created.
+        const payload = {
+          documentType: docType || 'Passport',
+          frontUrl:  frontEl.dataset.fileUrl  || 'pending-upload/' + (frontEl.dataset.fileName  || 'front.jpg'),
+          backUrl:   document.getElementById('docBack')?.dataset.fileUrl || null,
+          selfieUrl: selfieEl.dataset.fileUrl || 'pending-upload/' + (selfieEl.dataset.fileName || 'selfie.jpg'),
+          poaUrl:    document.getElementById('poaZone')?.dataset.fileUrl || null,
+        };
+        const r = await apiFetch('/kyc/submit', { method:'POST', body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Submission failed. Try again.','error'); return; }
+        toast('KYC submitted! Review takes 1–3 business days.');
+        setTimeout(()=>go('kyc'), 1500);
+      } catch(e) {
+        toast('Network error. Please try again.','error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit for Verification'; }
+      }
     }
     function triggerUpload(id){
       const el = document.createElement('input');
@@ -1364,6 +1391,8 @@ function fmt(n) {
         zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+this.files[0].name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Click to replace</div>';
         zone.style.borderColor='var(--primary)';
         zone.style.background='var(--primary-dim)';
+        zone.dataset.fileName = this.files[0].name;
+        zone.dataset.fileUrl  = '';
       };
       el.click();
     }
@@ -2567,8 +2596,35 @@ const PAGES = {
     </div>
 
     <script>
-    function submitKYC(){
-      toast('KYC documents submitted! Review takes 1–3 business days.');
+    async function submitKYC(){
+      const docType = document.getElementById('docType')?.value;
+      const frontEl = document.getElementById('docFront');
+      const selfieEl = document.getElementById('selfieZone');
+      // Check files were selected (we store filename in dataset)
+      if (!frontEl?.dataset.fileName) { toast('Please upload the front of your ID document.','error'); return; }
+      if (!selfieEl?.dataset.fileName) { toast('Please upload your selfie photo.','error'); return; }
+      const btn = document.querySelector('[onclick="submitKYC()"]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+      try {
+        // In production: upload files to Supabase Storage first to get public URLs.
+        // For now we send placeholder URLs so the DB record is created.
+        const payload = {
+          documentType: docType || 'Passport',
+          frontUrl:  frontEl.dataset.fileUrl  || 'pending-upload/' + (frontEl.dataset.fileName  || 'front.jpg'),
+          backUrl:   document.getElementById('docBack')?.dataset.fileUrl || null,
+          selfieUrl: selfieEl.dataset.fileUrl || 'pending-upload/' + (selfieEl.dataset.fileName || 'selfie.jpg'),
+          poaUrl:    document.getElementById('poaZone')?.dataset.fileUrl || null,
+        };
+        const r = await apiFetch('/kyc/submit', { method:'POST', body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Submission failed. Try again.','error'); return; }
+        toast('KYC submitted! Review takes 1–3 business days.');
+        setTimeout(()=>go('kyc'), 1500);
+      } catch(e) {
+        toast('Network error. Please try again.','error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit for Verification'; }
+      }
     }
     function triggerUpload(id){
       const el = document.createElement('input');
@@ -2579,6 +2635,8 @@ const PAGES = {
         zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+this.files[0].name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Click to replace</div>';
         zone.style.borderColor='var(--primary)';
         zone.style.background='var(--primary-dim)';
+        zone.dataset.fileName = this.files[0].name;
+        zone.dataset.fileUrl  = '';
       };
       el.click();
     }
