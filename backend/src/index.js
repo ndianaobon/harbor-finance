@@ -16,7 +16,7 @@ const kycRoutes          = require('./routes/kyc');
 const notificationRoutes = require('./routes/notification');
 
 const app  = express();
-const PORT = process.env.PORT || 4000;
+const PORT = parseInt(process.env.PORT) || 8080;
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());

@@ -8,5 +8,5 @@ RUN npm install --omit=dev
 # Copy the backend source
 COPY backend/ ./backend/
 
-EXPOSE 4000
+EXPOSE 8080
 CMD ["node", "backend/src/index.js"]
