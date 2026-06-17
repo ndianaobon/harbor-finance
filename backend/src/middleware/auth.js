@@ -21,7 +21,7 @@ async function requireAuth(req, res, next) {
   // Fetch fresh user from DB
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, role, status, email_verified, kyc_status')
+    .select('id, email, first_name, last_name, role, status, email_verified, kyc_status, referral_code, balance, tfa_enabled, phone, country')
     .eq('id', payload.sub)
     .single();
 
