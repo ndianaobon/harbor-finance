@@ -21,7 +21,14 @@ const PORT = process.env.PORT || 4000;
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: [
+    'https://harborfinance.net',
+    'https://www.harborfinance.net',
+    'http://localhost:3000',
+    'http://localhost:4000',
+    'http://127.0.0.1:5500',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean),
   credentials: true,
 }));
 

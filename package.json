@@ -1,0 +1,12 @@
+{
+  "name": "harbor-finance",
+  "version": "1.0.0",
+  "description": "Harbor Finance — root package to signal Node.js to Railway",
+  "scripts": {
+    "start": "node backend/src/index.js",
+    "build": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
