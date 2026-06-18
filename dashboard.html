@@ -1111,7 +1111,7 @@ const PAGES = {
   },
 
   async myinv() {
-    let rows = '<tr><td colspan="6"><div class="empty" style="padding:28px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><div class="empty-txt">No active investments. <a href="#" onclick="go(&quot;plans&quot;);return false" style="color:var(--primary)">Browse plans →</a></div></div></td></tr>';
+    let rows = '<tr><td colspan="6"><div class="empty" style="padding:28px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><div class="empty-txt">No active investments. <a href="#" onclick="go(\'plans\');return false" style="color:var(--primary)">Browse plans →</a></div></div></td></tr>';
     try {
       const { investments } = await apiFetch('/investments/mine').then(r => r.json());
       if (investments && investments.length) {
