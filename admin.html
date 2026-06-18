@@ -549,7 +549,7 @@ function sc(label, val, sub, dir){
   const cls   = dir==='up'?'up':dir==='dn'?'dn':'';
   return '<div class="stat-card"><div class="sc-label">'+label+'</div><div class="sc-val">'+val+'</div><div class="sc-sub"><span class="'+cls+'">'+arrow+sub+'</span></div></div>';
 }
-function qact(label, page, cls){ return '<button class="btn '+cls+'" onclick="go(''+page+'')">'+label+'</button>'; }
+function qact(label, page, cls){ return `<button class="btn ${cls}" onclick="go('${page}')">${label}</button>`; }
 function statusBadge(s){
   const map={active:'badge-green',suspended:'badge-yellow',banned:'badge-red'};
   return '<span class="badge '+(map[s]||'badge-gray')+'">'+s+'</span>';
