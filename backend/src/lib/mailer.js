@@ -16,6 +16,16 @@ transporter.verify((err) => {
   else     console.log('[MAILER] SMTP connection ready');
 });
 
+// Build a From address that always uses EMAIL_USER as the actual sender
+// (Gmail rejects From addresses that don't match the authenticated account)
+function getSenderAddress() {
+  const user = process.env.EMAIL_USER;
+  const from = process.env.EMAIL_FROM || '';
+  const nameMatch = from.match(/^([^<]+)</);
+  const displayName = nameMatch ? nameMatch[1].trim() : 'Harbor Finance';
+  return `${displayName} <${user}>`;
+}
+
 /**
  * Send a 6-digit email verification code.
  */
@@ -81,7 +91,7 @@ async function sendVerificationEmail(to, code, firstName = '') {
 </html>`;
 
   return transporter.sendMail({
-    from:    process.env.EMAIL_FROM || `Harbor Finance <${process.env.EMAIL_USER}>`,
+    from:    getSenderAddress(),
     to,
     subject: `${code} is your Harbor Finance verification code`,
     html,
@@ -124,7 +134,7 @@ async function sendPasswordResetEmail(to, resetUrl, firstName = '') {
 </html>`;
 
   return transporter.sendMail({
-    from:    process.env.EMAIL_FROM || `Harbor Finance <${process.env.EMAIL_USER}>`,
+    from:    getSenderAddress(),
     to,
     subject: 'Reset your Harbor Finance password',
     html,

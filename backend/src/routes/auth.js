@@ -28,7 +28,7 @@ const registerSchema = z.object({
   lastName:     z.string().min(1).max(60),
   email:        z.string().email(),
   password:     z.string().min(8).max(100),
-  phone:        z.string().optional(),
+  phone:        z.string().min(7, 'Phone number is required').max(20),
   referralCode: z.string().optional(),
 });
 
@@ -114,17 +114,21 @@ router.post('/register', async (req, res) => {
   });
 
   // Send verification email
+  let emailSent = true;
   try {
     await sendVerificationEmail(emailLower, otp, firstName);
   } catch (mailErr) {
+    emailSent = false;
     console.error('[MAILER] Failed to send verification email:', mailErr.message);
-    // Don't block registration — user can request resend
   }
 
   res.status(201).json({
-    message: 'Account created. Check your email for a 6-digit verification code.',
-    userId:  user.id,
-    email:   emailLower,
+    message: emailSent
+      ? 'Account created. Check your email for a 6-digit verification code.'
+      : 'Account created but we could not send the verification email. Please use "Resend Code" on the verification page.',
+    userId:    user.id,
+    email:     emailLower,
+    emailSent,
   });
 });
 
@@ -214,6 +218,10 @@ router.post('/login', async (req, res) => {
     // Timing-safe: still hash before returning
     await bcrypt.hash(password, 12);
     return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  if (!user.password_hash) {
+    return res.status(401).json({ error: 'This account uses Google sign-in. Please use the "Continue with Google" button.' });
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
@@ -461,6 +469,106 @@ router.patch('/profile', requireAuth, async (req, res) => {
   if (error) return res.status(500).json({ error: 'Failed to update profile' });
 
   res.json({ message: 'Profile updated successfully' });
+});
+
+// ── POST /api/auth/oauth/complete ─────────────────────────────────────────────
+// Frontend sends the Supabase access_token after Google/Apple OAuth succeeds.
+// Backend verifies it, upserts user in custom users table, returns a custom JWT.
+router.post('/oauth/complete', async (req, res) => {
+  const { access_token, provider } = req.body;
+  if (!access_token || !provider) {
+    return res.status(400).json({ error: 'access_token and provider are required' });
+  }
+  if (provider !== 'google') {
+    return res.status(400).json({ error: 'Unsupported provider' });
+  }
+
+  // Verify the Supabase access token and get the OAuth user
+  const { data: { user: oauthUser }, error: authErr } = await supabase.auth.getUser(access_token);
+  if (authErr || !oauthUser) {
+    return res.status(401).json({ error: 'Invalid or expired OAuth token' });
+  }
+
+  const email = (oauthUser.email || '').toLowerCase().trim();
+  if (!email) {
+    return res.status(400).json({ error: 'No email returned from OAuth provider' });
+  }
+
+  const meta = oauthUser.user_metadata || {};
+  let firstName = meta.full_name?.split(' ')[0] || meta.name?.split(' ')[0] || '';
+  let lastName  = meta.full_name?.split(' ').slice(1).join(' ') || meta.name?.split(' ').slice(1).join(' ') || '';
+  if (!firstName) firstName = email.split('@')[0];
+  if (!lastName) lastName = '.';
+
+  // Check if user already exists
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id, email, first_name, last_name, role, status')
+    .eq('email', email)
+    .maybeSingle();
+
+  let userId;
+
+  if (existing) {
+    if (existing.status === 'banned')    return res.status(403).json({ error: 'Account banned' });
+    if (existing.status === 'suspended') return res.status(403).json({ error: 'Account suspended' });
+    userId = existing.id;
+  } else {
+    const myReferralCode = 'HBR-' + uuidv4().slice(0, 8).toUpperCase();
+
+    const { data: newUser, error: insertErr } = await supabase
+      .from('users')
+      .insert({
+        first_name:     firstName,
+        last_name:      lastName,
+        email,
+        password_hash:  null,
+        phone:          null,
+        referral_code:  myReferralCode,
+        status:         'active',
+        role:           'user',
+        email_verified: true,
+        kyc_status:     'unverified',
+        balance:        0,
+        auth_provider:  provider,
+      })
+      .select('id')
+      .single();
+
+    if (insertErr) {
+      console.error('[OAUTH]', insertErr);
+      return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+    }
+    userId = newUser.id;
+  }
+
+  // Log the login
+  supabase.from('activity_logs').insert({
+    user_id: userId,
+    action:  `oauth_login_${provider}`,
+    ip:      req.ip,
+    meta:    { user_agent: req.headers['user-agent'], provider },
+  }).then(null, () => {});
+
+  const token = signToken(userId);
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, email, first_name, last_name, role')
+    .eq('id', userId)
+    .single();
+
+  res.json({
+    token,
+    user: {
+      id:        user.id,
+      email:     user.email,
+      firstName: user.first_name,
+      lastName:  user.last_name,
+      role:      user.role,
+    },
+    isNew: !existing,
+  });
 });
 
 module.exports = router;
