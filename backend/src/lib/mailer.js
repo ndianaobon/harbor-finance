@@ -81,7 +81,7 @@ async function sendVerificationEmail(to, code, firstName = '') {
 </html>`;
 
   return transporter.sendMail({
-    from:    process.env.EMAIL_FROM || 'Harbor Finance <noreply@harborfinance.com>',
+    from:    process.env.EMAIL_FROM || `Harbor Finance <${process.env.EMAIL_USER}>`,
     to,
     subject: `${code} is your Harbor Finance verification code`,
     html,
@@ -124,7 +124,7 @@ async function sendPasswordResetEmail(to, resetUrl, firstName = '') {
 </html>`;
 
   return transporter.sendMail({
-    from:    process.env.EMAIL_FROM || 'Harbor Finance <noreply@harborfinance.com>',
+    from:    process.env.EMAIL_FROM || `Harbor Finance <${process.env.EMAIL_USER}>`,
     to,
     subject: 'Reset your Harbor Finance password',
     html,
