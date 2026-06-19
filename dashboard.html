@@ -392,6 +392,228 @@ select.fi{appearance:none}
    ============================================================ */
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
 
+/* ============================================================
+   MOBILE BOTTOM NAV
+   ============================================================ */
+.mob-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:6px 0 env(safe-area-inset-bottom,8px);
+}
+.mob-nav-inner{display:flex;align-items:flex-end;justify-content:space-around;max-width:500px;margin:0 auto}
+.mob-nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--text-3);font-size:10px;font-weight:600;
+  padding:4px 10px;cursor:pointer;transition:color .18s;-webkit-tap-highlight-color:transparent;
+}
+.mob-nav-item.active{color:var(--primary)}
+.mob-nav-item svg{width:20px;height:20px}
+.mob-nav-center{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  border:none;cursor:pointer;margin-top:-18px;
+  box-shadow:0 4px 16px rgba(46,160,67,.4);transition:transform .18s;
+}
+.mob-nav-center:active{transform:scale(.93)}
+.mob-nav-center svg{width:24px;height:24px}
+
+/* ── Mobile topbar variant ── */
+.mob-tb{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:40;
+  height:56px;background:rgba(13,17,23,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;align-items:center;justify-content:space-between;
+}
+.mob-tb-logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;letter-spacing:-.01em}
+.mob-tb-logo-mark{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--primary),#1a7f37);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mob-tb-right{display:flex;align-items:center;gap:10px}
+.mob-tb-toggle{
+  width:40px;height:22px;border-radius:11px;background:var(--surface-3);border:1px solid var(--border);
+  position:relative;cursor:pointer;
+}
+.mob-tb-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-2);transition:transform .2s}
+.mob-tb-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--primary);color:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;
+}
+
+/* ── Mobile dashboard cards ── */
+.mob-welcome{
+  background:linear-gradient(135deg,rgba(46,160,67,.12) 0%,rgba(88,166,255,.06) 100%);
+  border:1px solid rgba(46,160,67,.18);border-radius:var(--r-xl);
+  padding:20px;margin-bottom:16px;
+}
+.mob-welcome-name{font-size:20px;font-weight:800;line-height:1.2;margin-bottom:4px}
+.mob-welcome-date{font-size:13px;color:var(--text-2);margin-bottom:10px}
+.mob-welcome-status{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.06);border-radius:50px;padding:5px 14px;
+  font-size:12px;font-weight:600;color:var(--text)
+}
+
+.mob-bal-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
+  padding:20px;margin-bottom:16px;position:relative;
+}
+.mob-bal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.mob-bal-label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.mob-bal-label svg{color:var(--text-2)}
+.mob-bal-eye{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px}
+.mob-bal-sub{font-size:12px;color:var(--text-2);margin-bottom:12px}
+.mob-bal-amount{font-size:32px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
+.mob-bal-updated{font-size:11px;color:var(--text-3);margin-bottom:16px}
+.mob-bal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mob-bal-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+  transition:all .18s;
+}
+.mob-bal-btn:active{transform:scale(.97)}
+.mob-bal-btn.dep{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.mob-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.mob-stat{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
+  padding:16px;position:relative;
+}
+.mob-stat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mob-stat-label{font-size:13px;font-weight:600;color:var(--text-2)}
+.mob-stat-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.mob-stat-icon.green{background:rgba(46,160,67,.15);color:var(--primary)}
+.mob-stat-icon.gold{background:rgba(227,179,65,.15);color:var(--warn)}
+.mob-stat-icon.blue{background:rgba(88,166,255,.15);color:var(--accent)}
+.mob-stat-icon.red{background:rgba(248,81,73,.15);color:var(--danger)}
+.mob-stat-val{font-size:20px;font-weight:800;letter-spacing:-.02em}
+
+/* ── Mobile trading analysis ── */
+.mob-trading{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:16px}
+.mob-trading-title{font-size:15px;font-weight:700;margin-bottom:12px}
+.mob-signal{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mob-signal-label{font-size:13px;font-weight:600;color:var(--text-2)}
+.mob-signal-val{font-size:14px;font-weight:700;color:var(--primary)}
+.mob-signal-bar{height:6px;border-radius:3px;background:var(--surface-3);margin-bottom:16px;overflow:hidden}
+.mob-signal-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
+
+/* ── Mobile investments section ── */
+.mob-invest-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:16px;text-align:center}
+.mob-invest-empty-icon{width:56px;height:56px;border-radius:50%;background:var(--surface-3);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:var(--text-3)}
+.mob-invest-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.mob-invest-sub{font-size:13px;color:var(--text-3);margin-bottom:16px}
+
+/* ── Mobile market overview ── */
+.mob-market{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:16px}
+.mob-market-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mob-market-title{font-size:15px;font-weight:700}
+.mob-market-arrows{display:flex;gap:6px}
+.mob-market-arrows button{
+  width:30px;height:30px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text-3);display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.mob-coin-card{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;
+}
+.mob-coin-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mob-coin-info{display:flex;align-items:center;gap:10px}
+.mob-coin-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.mob-coin-name{font-size:14px;font-weight:700}
+.mob-coin-sym{font-size:11px;color:var(--text-3)}
+.mob-coin-chg{padding:4px 10px;border-radius:50px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:3px}
+.mob-coin-chg.up{background:rgba(248,81,73,.12);color:var(--danger)}
+.mob-coin-chg.down{background:rgba(46,160,67,.12);color:var(--primary)}
+.mob-coin-bottom{display:flex;justify-content:space-between;margin-bottom:12px}
+.mob-coin-price-label{font-size:11px;color:var(--text-3);margin-bottom:2px}
+.mob-coin-price-val{font-size:16px;font-weight:700}
+.mob-coin-24h{text-align:right}
+.mob-coin-24h-val{color:var(--danger);font-weight:700;font-size:14px}
+.mob-coin-chart{height:40px;overflow:hidden}
+
+/* ── Mobile recent transactions ── */
+.mob-txns{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:80px}
+.mob-txns-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mob-txns-title{font-size:15px;font-weight:700}
+.mob-txns-viewall{font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;display:flex;align-items:center;gap:4px}
+.mob-txns-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px}
+.mob-txn-tab{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 16px;font-size:12px;font-weight:600;color:var(--text-3);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .18s;flex:1;
+}
+.mob-txn-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.mob-txn-tab svg{width:18px;height:18px}
+.mob-txn-row{
+  padding:14px 0;border-bottom:1px solid var(--border-2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mob-txn-row:last-child{border-bottom:none}
+.mob-txn-left{}
+.mob-txn-amount{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:2px}
+.mob-txn-amount.out{color:var(--danger)}
+.mob-txn-meta{font-size:11px;color:var(--text-3)}
+.mob-txn-meta span{display:block;margin-top:1px}
+.mob-txn-status{padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600}
+.mob-txn-status.processed{background:rgba(46,160,67,.12);color:var(--primary)}
+.mob-txn-status.pending{background:rgba(227,179,65,.1);color:var(--warn)}
+.mob-txn-status.rejected{background:rgba(248,81,73,.1);color:var(--danger)}
+
+/* ── Mobile profile page ── */
+.mob-profile-header{
+  background:linear-gradient(135deg,rgba(46,160,67,.15) 0%,rgba(46,160,67,.05) 100%);
+  border-radius:var(--r-xl);padding:24px;text-align:center;margin-bottom:16px;
+}
+.mob-profile-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--primary);color:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:800;margin:0 auto 6px;position:relative;
+}
+.mob-profile-check{
+  position:absolute;bottom:0;right:-2px;width:22px;height:22px;border-radius:50%;
+  background:var(--primary);border:3px solid var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}
+.mob-profile-check svg{width:10px;height:10px;color:#fff}
+.mob-profile-name{font-size:16px;font-weight:800;margin-bottom:14px}
+.mob-profile-stats{display:flex;flex-direction:column;gap:8px;text-align:left}
+.mob-profile-stat{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.mob-profile-stat-label{color:var(--text-2)}
+.mob-profile-stat-val{font-weight:700}
+.mob-profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+
+.mob-profile-verify{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-top:1px solid var(--border);margin-top:14px;
+}
+.mob-profile-verify-label{font-size:13px;color:var(--text-2)}
+.mob-profile-verify-badge{
+  display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:50px;
+  background:rgba(46,160,67,.12);color:var(--primary);font-size:12px;font-weight:700;
+}
+
+/* ── Mobile referral card ── */
+.mob-referral-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:18px;margin-bottom:80px}
+.mob-referral-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mob-referral-title{font-size:15px;font-weight:700}
+.mob-referral-details{font-size:13px;font-weight:600;color:var(--primary);cursor:pointer}
+.mob-referral-desc{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.mob-referral-icon{width:36px;height:36px;border-radius:50%;background:rgba(227,179,65,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mob-referral-text{font-size:12px;color:var(--text-2);line-height:1.5}
+.mob-referral-text strong{color:var(--text);font-weight:700}
+.mob-referral-link-label{font-size:12px;color:var(--text-3);margin-bottom:6px}
+.mob-referral-link-box{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 12px;
+}
+.mob-referral-url{flex:1;font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mob-referral-copy{
+  background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:var(--r);
+  font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;
+}
+
 @media(max-width:1024px){
   .stat-grid{grid-template-columns:repeat(2,1fr)}
   .plan-grid{grid-template-columns:repeat(2,1fr)}
@@ -403,9 +625,12 @@ select.fi{appearance:none}
   .sb{transform:translateX(-220px);width:220px}
   .sb.open{transform:translateX(0)}
   .main{margin-left:0}
-  .tb{left:0}
-  .ham-btn{display:flex}
-  .pc{padding:16px}
+  .tb{display:none}
+  .mob-tb{display:flex}
+  .mob-nav{display:block}
+  .main{padding-top:56px;padding-bottom:70px}
+  .ham-btn{display:none}
+  .pc{padding:14px}
   .stat-grid{gap:10px}
   .plan-grid{grid-template-columns:1fr}
   .trader-grid{grid-template-columns:1fr}
@@ -528,6 +753,23 @@ select.fi{appearance:none}
   </div>
 </aside>
 
+<!-- MOBILE TOPBAR -->
+<header class="mob-tb" id="mobTb">
+  <div class="mob-tb-logo">
+    <div class="mob-tb-logo-mark">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 3v18h18"/><polyline points="18 9 12 15 9 12 3 18"/></svg>
+    </div>
+    HARBOR FINANCE
+  </div>
+  <div class="mob-tb-right">
+    <div class="tb-icon-btn" title="Theme">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </div>
+    <div class="mob-tb-toggle"></div>
+    <div class="mob-tb-avatar" id="mobTbAv">MF</div>
+  </div>
+</header>
+
 <!-- TOPBAR -->
 <header class="tb">
   <button class="ham-btn" id="hamBtn" onclick="toggleSB()" aria-label="Toggle menu">
@@ -556,6 +798,31 @@ select.fi{appearance:none}
 
 <!-- OVERLAY -->
 <div class="sb-overlay" id="sbOv" onclick="toggleSB()"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-nav" id="mobNav">
+  <div class="mob-nav-inner">
+    <button class="mob-nav-item active" data-mob="dashboard" onclick="mobGo('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="mob-nav-item" data-mob="fund" onclick="mobGo('fund',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Deposit
+    </button>
+    <button class="mob-nav-center" onclick="mobGo('stocks',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    </button>
+    <button class="mob-nav-item" data-mob="transactions" onclick="mobGo('transactions',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </button>
+    <button class="mob-nav-item" data-mob="profile" onclick="mobGo('profile',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+</nav>
 
 <!-- TOAST -->
 <div id="toastEl" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;background:var(--surface);border:1px solid var(--primary);color:var(--primary);padding:10px 18px;border-radius:var(--r-lg);font-size:12px;font-weight:600;box-shadow:var(--shadow);max-width:300px;animation:slideUp .25s var(--ease)"></div>
@@ -1654,14 +1921,25 @@ const TITLES = {
 };
 
 async function go(key) {
-  if (!PAGES[key]) return;
-  document.getElementById('tbTitle').textContent = TITLES[key] || key;
+  if (!PAGES[key] && key !== 'profile') return;
+  const tbTitle = document.getElementById('tbTitle');
+  if (tbTitle) tbTitle.textContent = TITLES[key] || key;
   document.querySelectorAll('.ni').forEach(el => {
     el.classList.toggle('active', el.dataset.page === key);
   });
+  updateMobNav(key);
   document.getElementById('pc').innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--text-3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>Loading...</div>';
   try {
-    const pageHtml = await PAGES[key]();
+    let pageHtml;
+    if (isMobile() && key === 'dashboard') {
+      pageHtml = await renderMobDashboard();
+    } else if (isMobile() && key === 'profile') {
+      pageHtml = await renderMobProfile();
+    } else if (key === 'profile') {
+      pageHtml = await PAGES['settings']();
+    } else {
+      pageHtml = await PAGES[key]();
+    }
     if (!pageHtml) {
       document.getElementById('pc').innerHTML = '<div class="empty" style="padding:40px;text-align:center"><p style="color:var(--danger);font-size:14px">Page returned empty content. Please refresh or try again.</p></div>';
       return;
@@ -1697,6 +1975,114 @@ async function go(key) {
   }
   window.scrollTo({top:0, behavior:'smooth'});
   if (window.innerWidth <= 768) closeSB();
+}
+
+/* ─── Mobile nav ─────────────────────────────────────────── */
+function isMobile() { return window.innerWidth <= 768; }
+
+function mobGo(page, btn) {
+  document.querySelectorAll('.mob-nav-item').forEach(b => b.classList.remove('active'));
+  if (btn && btn.classList.contains('mob-nav-item')) btn.classList.add('active');
+  go(page);
+}
+
+function updateMobNav(page) {
+  const map = { dashboard:'dashboard', fund:'fund', transactions:'transactions', profile:'profile' };
+  document.querySelectorAll('.mob-nav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.mob === (map[page] || ''));
+  });
+}
+
+/* ─── Mobile dashboard renderer ─────────────────────────── */
+async function renderMobDashboard() {
+  const u = _user || {};
+  const name = ((u.first_name || 'User') + ' ' + (u.last_name || '')).toUpperCase();
+  const bal = fmt(u.balance || 0);
+  const now = new Date();
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dateStr = dayNames[now.getDay()] + ', ' + monthNames[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  const timeStr = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true});
+
+  let txnRows = '';
+  let totalDeposits = 0, totalWithdrawals = 0, totalProfits = 0;
+  try {
+    const [dRes, wRes] = await Promise.all([
+      apiFetch('/deposits').then(r => r.json()),
+      apiFetch('/withdrawals').then(r => r.json()),
+    ]);
+    const deps = (dRes.deposits || []).filter(d => d.status === 'approved');
+    const wds = (wRes.withdrawals || []).filter(w => w.status === 'approved');
+    deps.forEach(d => totalDeposits += Number(d.amount || 0));
+    wds.forEach(w => totalWithdrawals += Number(w.amount || 0));
+
+    const allDeps = (dRes.deposits || []).map(d => ({type:'deposit',amount:d.amount,method:d.method,status:d.status,date:d.created_at}));
+    const allWds = (wRes.withdrawals || []).map(w => ({type:'withdrawal',amount:w.amount,method:w.method,status:w.status,date:w.created_at}));
+    const all = [...allDeps,...allWds].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+    txnRows = all.map(t => {
+      const stsClass = t.status==='approved'?'processed':t.status==='pending'?'pending':'rejected';
+      const stsLabel = t.status==='approved'?'Processed':t.status==='pending'?'Pending':'Rejected';
+      const isDeposit = t.type==='deposit';
+      return '<div class="mob-txn-row"><div class="mob-txn-left"><div class="mob-txn-amount'+(isDeposit?'':' out')+'">'+(isDeposit?'+':'-')+fmt(t.amount)+'</div><div class="mob-txn-meta"><span>Payment Method &nbsp;&nbsp;&nbsp;'+(t.method||'Express Deposit')+'</span><span>Date &nbsp;&nbsp;&nbsp;'+fmtDate(t.date)+'</span></div></div><div class="mob-txn-status '+stsClass+'">'+stsLabel+'</div></div>';
+    }).join('');
+  } catch(e) {}
+
+  if (!txnRows) txnRows = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">No transactions yet</div>';
+
+  return '<div class="mob-welcome c-anim">'
+    + '<div class="mob-welcome-name">Welcome back, ' + (u.first_name || 'User').toUpperCase() + ' ' + (u.last_name || '').toUpperCase() + '!</div>'
+    + '<div class="mob-welcome-date">' + dateStr + '</div>'
+    + '<div class="mob-welcome-status">Status: Account Active</div>'
+    + '</div>'
+    + '<div class="mob-bal-card c-anim">'
+    + '<div class="mob-bal-header"><div class="mob-bal-label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Account Balance</div><button class="mob-bal-eye"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>'
+    + '<div class="mob-bal-sub">Your current available balance</div>'
+    + '<div class="mob-bal-amount">' + bal + '</div>'
+    + '<div class="mob-bal-updated">Last updated: ' + monthNames[now.getMonth()].slice(0,3) + ' ' + now.getDate() + ', ' + now.getFullYear() + ' ' + timeStr + '</div>'
+    + '<div class="mob-bal-actions"><button class="mob-bal-btn dep" onclick="go(\'fund\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Deposit</button><button class="mob-bal-btn" onclick="go(\'withdraw\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 7 17 17"/><polyline points="17 7 17 17 7 17"/></svg> Withdraw</button></div>'
+    + '</div>'
+    + '<div class="mob-stat-grid c-anim">'
+    + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Profits</div><div class="mob-stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div></div><div class="mob-stat-val">' + fmt(totalProfits) + '</div></div>'
+    + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Bonus</div><div class="mob-stat-icon gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg></div></div><div class="mob-stat-val">' + fmt(u.bonus || 0) + '</div></div>'
+    + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Deposits</div><div class="mob-stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div></div><div class="mob-stat-val">' + fmt(totalDeposits) + '</div></div>'
+    + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Withdrawals</div><div class="mob-stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div></div><div class="mob-stat-val">' + fmt(totalWithdrawals) + '</div></div>'
+    + '</div>'
+    + '<div class="mob-trading c-anim"><div class="mob-trading-title">Trading Analysis</div><div class="mob-signal"><div class="mob-signal-label">Signal Strength</div><div class="mob-signal-val">92%</div></div><div class="mob-signal-bar"><div class="mob-signal-fill" style="width:92%"></div></div><div id="mobTvChart" style="height:300px;border-radius:8px;overflow:hidden;background:var(--surface-2)"><div class="tradingview-widget-container" style="height:100%;width:100%"><div id="mob_tv_chart" style="height:100%;width:100%"></div></div></div><script>setTimeout(function(){if(!document.getElementById("mob_tv_chart"))return;var s=document.createElement("script");s.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";s.async=true;s.innerHTML=JSON.stringify({autosize:true,symbol:"BITSTAMP:BTCUSD",interval:"15",timezone:"Etc/UTC",theme:"dark",style:"1",locale:"en",enable_publishing:false,hide_top_toolbar:true,hide_legend:false,save_image:false,backgroundColor:"rgba(22,27,34,1)",gridColor:"rgba(48,54,61,0.5)",container_id:"mob_tv_chart"});document.getElementById("mob_tv_chart").appendChild(s)},200)<\/script></div>'
+    + '<div class="mob-invest-section c-anim"><div class="mob-invest-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="mob-invest-title">Active Investments (0)</div><div class="mob-invest-sub">You don\'t have any active investment at the moment.</div><button class="btn btn-g" onclick="go(\'plans\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Invest</button></div>'
+    + '<div class="mob-market c-anim"><div class="mob-market-head"><div class="mob-market-title">Market Overview</div><div class="mob-market-arrows"><button onclick="mobMarketScroll(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button onclick="mobMarketScroll(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div><div id="mobMarketSlider" style="overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none"><div style="display:flex;gap:12px;min-width:max-content"><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#F7931A;color:#fff">₿</div><div><div class="mob-coin-name">Bitcoin</div><div class="mob-coin-sym">BTC</div></div></div><div class="mob-coin-chg up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 15 12 9 18 15"/></svg> -2.84%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$62,334.00</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val">-$1,822.29</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 30 Q30 28 60 25 T120 20 T180 30 T240 22 T280 28" fill="none" stroke="var(--danger)" stroke-width="2"/></svg></div></div><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#627EEA;color:#fff">Ξ</div><div><div class="mob-coin-name">Ethereum</div><div class="mob-coin-sym">ETH</div></div></div><div class="mob-coin-chg down">+1.87%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$3,518.00</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val" style="color:var(--primary)">+$64.50</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 35 Q40 25 80 20 T160 15 T220 10 T280 12" fill="none" stroke="var(--primary)" stroke-width="2"/></svg></div></div><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#26A17B;color:#fff">₮</div><div><div class="mob-coin-name">Solana</div><div class="mob-coin-sym">SOL</div></div></div><div class="mob-coin-chg down">+3.22%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$172.30</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val" style="color:var(--primary)">+$5.38</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 30 Q50 20 100 15 T200 10 T280 8" fill="none" stroke="var(--primary)" stroke-width="2"/></svg></div></div></div></div></div>'
+    + '<div class="mob-txns c-anim"><div class="mob-txns-head"><div class="mob-txns-title">Recent Transactions</div><div class="mob-txns-viewall" onclick="go(\'transactions\')">View all <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div><div class="mob-txns-tabs"><div class="mob-txn-tab active" onclick="mobTxnTab(this,\'dep\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Deposits</div><div class="mob-txn-tab" onclick="mobTxnTab(this,\'wd\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Withdrawals</div><div class="mob-txn-tab" onclick="mobTxnTab(this,\'other\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Others</div></div><div id="mobTxnContent">' + txnRows + '</div></div>';
+}
+
+async function renderMobProfile() {
+  const u = _user || {};
+  const name = ((u.first_name || 'User') + ' ' + (u.last_name || '')).toUpperCase();
+  const initials = ((u.first_name||'U')[0] + (u.last_name||'')[0]).toUpperCase();
+  const bal = fmt(u.balance || 0);
+  const refCode = u.referral_code || '';
+  const refLink = 'https://harborfinance.net/ref/' + refCode;
+
+  return '<div class="mob-profile-header c-anim">'
+    + '<div class="mob-profile-avatar">' + initials + '<div class="mob-profile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></div>'
+    + '<div class="mob-profile-name">' + name + '</div>'
+    + '<div class="mob-profile-stats">'
+    + '<div class="mob-profile-stat"><span class="mob-profile-stat-label">Account Balance</span><span class="mob-profile-stat-val">' + bal + '</span></div>'
+    + '<div class="mob-profile-stat"><span class="mob-profile-stat-label">Bonus</span><span class="mob-profile-stat-val">' + fmt(u.bonus || 0) + '</span></div>'
+    + '<div class="mob-profile-stat"><span class="mob-profile-stat-label">Referral Bonus</span><span class="mob-profile-stat-val">$0.00</span></div>'
+    + '</div>'
+    + '<div class="mob-profile-actions"><button class="mob-bal-btn dep" onclick="go(\'fund\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Deposit</button><button class="mob-bal-btn" onclick="go(\'withdraw\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 7 17 17"/><polyline points="17 7 17 17 7 17"/></svg> Withdraw</button></div>'
+    + '<div class="mob-profile-verify"><span class="mob-profile-verify-label">Account Verification Status</span><div class="mob-profile-verify-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Verified</div></div>'
+    + '</div>'
+    + '<div class="mob-referral-card c-anim"><div class="mob-referral-head"><div class="mob-referral-title">Refer & Earn</div><div class="mob-referral-details" onclick="go(\'referrals\')">Details ></div></div><hr style="border:none;border-top:1px solid var(--border);margin-bottom:14px"><div class="mob-referral-desc"><div class="mob-referral-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="mob-referral-text"><strong>Earn Through Referrals</strong><br>Earn commission when someone signs up using your link</div></div><div class="mob-referral-link-label">Your Referral Link</div><div class="mob-referral-link-box"><div class="mob-referral-url">' + refLink + '</div><button class="mob-referral-copy" onclick="copyRef(this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button></div></div>';
+}
+
+function mobTxnTab(tab, type) {
+  document.querySelectorAll('.mob-txn-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+}
+
+function mobMarketScroll(dir) {
+  const slider = document.getElementById('mobMarketSlider');
+  if (slider) slider.scrollBy({ left: dir * 290, behavior: 'smooth' });
 }
 
 /* ─── Sidebar ────────────────────────────────────────────── */
@@ -1913,6 +2299,8 @@ async function init() {
     if (avEl)   { const txt = avEl.childNodes[0]; if(txt) txt.textContent = ((fn[0]||'')+(ln[0]||'')).toUpperCase()||'U'; }
     if (tbAvEl) tbAvEl.textContent = ((fn[0]||'')+(ln[0]||'')).toUpperCase()||'U';
     if (tbNmEl) tbNmEl.textContent = fn || user.email;
+    const mobAvEl = document.getElementById('mobTbAv');
+    if (mobAvEl) mobAvEl.textContent = ((fn[0]||'')+(ln[0]||'')).toUpperCase()||'U';
   } catch(e) {
     localStorage.removeItem('hbr_token');
     window.location.replace('auth.html');
