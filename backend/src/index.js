@@ -14,6 +14,7 @@ const walletRoutes       = require('./routes/wallet');
 const referralRoutes     = require('./routes/referral');
 const kycRoutes          = require('./routes/kyc');
 const notificationRoutes = require('./routes/notification');
+const supportRoutes      = require('./routes/support');
 
 const app  = express();
 const PORT = parseInt(process.env.PORT, 10) || 4000;
@@ -68,6 +69,7 @@ app.use('/api/wallets',       walletRoutes);
 app.use('/api/referrals',     referralRoutes);
 app.use('/api/kyc',           kycRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/support',       supportRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

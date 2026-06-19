@@ -103,7 +103,7 @@ input,select,textarea{font-family:inherit}
   border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .sb-logo-mark{
-  width:30px;height:30px;border-radius:7px;
+  width:40px;height:40px;border-radius:10px;
   background:linear-gradient(135deg,#1B365D,#2A4A7F);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
@@ -440,7 +440,7 @@ select.fi{appearance:none}
   padding:0 16px;align-items:center;justify-content:space-between;
 }
 .mob-tb-logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;letter-spacing:-.01em}
-.mob-tb-logo-mark{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1B365D,#2A4A7F);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mob-tb-logo-mark{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#1B365D,#2A4A7F);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .mob-tb-right{display:flex;align-items:center;gap:10px}
 .mob-tb-toggle{
   width:40px;height:22px;border-radius:11px;background:var(--surface-3);border:1px solid var(--border);
@@ -467,6 +467,14 @@ select.fi{appearance:none}
   background:rgba(255,255,255,.06);border-radius:50px;padding:5px 14px;
   font-size:12px;font-weight:600;color:var(--text)
 }
+.mob-verify-prompt{
+  display:flex;align-items:center;gap:8px;
+  margin-top:12px;padding:10px 14px;
+  background:rgba(227,179,65,.1);border:1px solid rgba(227,179,65,.25);
+  border-radius:var(--r);cursor:pointer;
+  font-size:12px;font-weight:600;color:#e3b341;transition:.2s;
+}
+.mob-verify-prompt:hover{background:rgba(227,179,65,.18)}
 
 .mob-bal-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
@@ -666,6 +674,69 @@ select.fi{appearance:none}
   .tc-stats{grid-template-columns:1fr 1fr 1fr}
   .mob-coin-card{min-width:260px!important}
 }
+
+/* ── Support Chat Widget ── */
+.chat-fab{
+  position:fixed;bottom:90px;right:20px;z-index:900;
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#1B365D,#2A4A7F);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:.2s;
+  border:none;color:#fff;
+}
+.chat-fab:hover{transform:scale(1.08)}
+.chat-fab .chat-badge{
+  position:absolute;top:-2px;right:-2px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--danger);font-size:10px;font-weight:700;
+  display:none;align-items:center;justify-content:center;color:#fff;
+}
+@media(min-width:769px){.chat-fab{bottom:24px;right:24px}}
+.chat-panel{
+  position:fixed;bottom:0;right:0;z-index:901;
+  width:360px;max-width:100vw;height:480px;max-height:80vh;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px 16px 0 0;display:none;flex-direction:column;
+  box-shadow:0 -4px 30px rgba(0,0,0,.3);
+}
+@media(max-width:768px){.chat-panel{width:100%;height:70vh;border-radius:16px 16px 0 0}}
+.chat-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.chat-header-left{display:flex;align-items:center;gap:10px}
+.chat-header-av{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#1B365D,#2A4A7F);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.chat-header-info{font-size:13px;font-weight:700}
+.chat-header-status{font-size:11px;color:var(--primary);font-weight:500}
+.chat-close{background:none;border:none;color:var(--text-2);cursor:pointer;padding:4px}
+.chat-close:hover{color:var(--text)}
+.chat-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.chat-msg{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5;word-wrap:break-word}
+.chat-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.admin{align-self:flex-start;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+.chat-msg .chat-time{font-size:10px;opacity:.6;margin-top:4px;display:block}
+.chat-empty{text-align:center;color:var(--text-3);font-size:13px;padding:30px 10px;line-height:1.6}
+.chat-input-wrap{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.chat-input{
+  flex:1;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:20px;padding:10px 14px;color:var(--text);font-size:13px;
+  outline:none;
+}
+.chat-input:focus{border-color:var(--primary)}
+.chat-send{
+  width:36px;height:36px;border-radius:50%;background:var(--primary);
+  border:none;color:#fff;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;transition:.2s;
+}
+.chat-send:hover{background:var(--primary-h)}
 </style>
 </head>
 <body>
@@ -674,7 +745,7 @@ select.fi{appearance:none}
 <aside class="sb" id="sb">
   <div class="sb-logo">
     <div class="sb-logo-mark">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.5" r="2" stroke="#fff" stroke-width="1.5"/><path d="M12 7.5V20" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M9 11.5h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 17c0 3 2.5 5 6.5 5s6.5-2 6.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M4 17h3m10 0h3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M6 19l4-4 3 2 5-6" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 11h2v2" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.5" r="2" stroke="#fff" stroke-width="1.5"/><path d="M12 7.5V20" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M9 11.5h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 17c0 3 2.5 5 6.5 5s6.5-2 6.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M4 17h3m10 0h3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M6 19l4-4 3 2 5-6" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 11h2v2" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <span>HARBOR FINANCE</span>
   </div>
@@ -780,7 +851,7 @@ select.fi{appearance:none}
 <header class="mob-tb" id="mobTb">
   <div class="mob-tb-logo">
     <div class="mob-tb-logo-mark">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.5" r="2" stroke="#fff" stroke-width="1.5"/><path d="M12 7.5V20" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M9 11.5h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 17c0 3 2.5 5 6.5 5s6.5-2 6.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M4 17h3m10 0h3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M6 19l4-4 3 2 5-6" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 11h2v2" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.5" r="2" stroke="#fff" stroke-width="1.5"/><path d="M12 7.5V20" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M9 11.5h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 17c0 3 2.5 5 6.5 5s6.5-2 6.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M4 17h3m10 0h3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M6 19l4-4 3 2 5-6" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 11h2v2" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     HARBOR FINANCE
   </div>
@@ -2052,11 +2123,12 @@ async function renderMobDashboard() {
     + '<div class="mob-welcome-name">Welcome back, ' + (u.first_name || 'User').toUpperCase() + ' ' + (u.last_name || '').toUpperCase() + '!</div>'
     + '<div class="mob-welcome-date">' + dateStr + '</div>'
     + '<div class="mob-welcome-status">Status: ' + (u.account_status_text || 'Account Active') + '</div>'
+    + (u.kyc_status !== 'verified' ? '<div class="mob-verify-prompt" onclick="go(\'kyc\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Verify Your Account<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg></div>' : '')
     + '</div>'
     + '<div class="mob-bal-card c-anim">'
-    + '<div class="mob-bal-header"><div class="mob-bal-label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Account Balance</div><button class="mob-bal-eye"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>'
+    + '<div class="mob-bal-header"><div class="mob-bal-label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Account Balance</div><button class="mob-bal-eye" id="mobBalEye" onclick="toggleMobBal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>'
     + '<div class="mob-bal-sub">Your current available balance</div>'
-    + '<div class="mob-bal-amount">' + bal + '</div>'
+    + '<div class="mob-bal-amount" id="mobBalAmount">' + bal + '</div>'
     + '<div class="mob-bal-updated">Last updated: ' + monthNames[now.getMonth()].slice(0,3) + ' ' + now.getDate() + ', ' + now.getFullYear() + ' ' + timeStr + '</div>'
     + '<div class="mob-bal-actions"><button class="mob-bal-btn dep" onclick="go(\'fund\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Deposit</button><button class="mob-bal-btn" onclick="go(\'withdraw\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 7 17 17"/><polyline points="17 7 17 17 7 17"/></svg> Withdraw</button></div>'
     + '</div>'
@@ -2092,6 +2164,23 @@ async function renderMobProfile() {
     + '<div class="mob-profile-verify"><span class="mob-profile-verify-label">Account Status</span><div class="mob-profile-verify-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> ' + (u.account_status_text || 'Account Active') + '</div></div>'
     + '</div>'
     + '<div class="mob-referral-card c-anim"><div class="mob-referral-head"><div class="mob-referral-title">Refer & Earn</div><div class="mob-referral-details" onclick="go(\'referrals\')">Details ></div></div><hr style="border:none;border-top:1px solid var(--border);margin-bottom:14px"><div class="mob-referral-desc"><div class="mob-referral-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="mob-referral-text"><strong>Earn Through Referrals</strong><br>Earn commission when someone signs up using your link</div></div><div class="mob-referral-link-label">Your Referral Link</div><div class="mob-referral-link-box"><div class="mob-referral-url">' + refLink + '</div><button class="mob-referral-copy" onclick="copyRef(this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</button></div></div>';
+}
+
+let _mobBalHidden = false;
+let _mobBalReal = '';
+function toggleMobBal() {
+  const el = document.getElementById('mobBalAmount');
+  const btn = document.getElementById('mobBalEye');
+  if (!el) return;
+  if (!_mobBalHidden) {
+    _mobBalReal = el.textContent;
+    el.textContent = '••••••';
+    if (btn) btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  } else {
+    el.textContent = _mobBalReal;
+    if (btn) btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  }
+  _mobBalHidden = !_mobBalHidden;
 }
 
 function mobTxnTab(tab, type) {
@@ -2312,6 +2401,31 @@ function doLogout() {
   window.location.replace('auth.html');
 }
 
+/* ─── Session Timeout (20 min inactivity) ───────────────── */
+let _idleTimer;
+function resetIdleTimer() {
+  clearTimeout(_idleTimer);
+  localStorage.setItem('hbr_last_active', Date.now().toString());
+  _idleTimer = setTimeout(function() {
+    localStorage.removeItem('hbr_token');
+    localStorage.removeItem('hbr_user');
+    window.location.replace('auth.html');
+  }, 20 * 60 * 1000);
+}
+['mousemove','keydown','touchstart','click','scroll'].forEach(function(evt) {
+  document.addEventListener(evt, resetIdleTimer, { passive: true });
+});
+resetIdleTimer();
+
+(function checkStaleSession() {
+  const last = Number(localStorage.getItem('hbr_last_active') || 0);
+  if (last && Date.now() - last > 20 * 60 * 1000) {
+    localStorage.removeItem('hbr_token');
+    localStorage.removeItem('hbr_user');
+    window.location.replace('auth.html');
+  }
+})();
+
 /* ─── Theme ─────────────────────────────────────────────── */
 const _sunSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
 const _moonSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
@@ -2369,6 +2483,103 @@ async function init() {
   go('dashboard');
 }
 init();
+
+/* ─── Support Chat ──────────────────────────────────────── */
+let _chatOpen = false;
+let _chatMsgs = [];
+function toggleChat() {
+  _chatOpen = !_chatOpen;
+  document.getElementById('chatPanel').style.display = _chatOpen ? 'flex' : 'none';
+  if (_chatOpen) loadChatMessages();
+}
+async function loadChatMessages() {
+  try {
+    const r = await apiFetch('/support/messages');
+    if (!r.ok) return;
+    const d = await r.json();
+    _chatMsgs = d.messages || [];
+    renderChat();
+    const badge = document.getElementById('chatBadge');
+    if (badge) badge.style.display = 'none';
+  } catch(e) {}
+}
+function renderChat() {
+  const body = document.getElementById('chatBody');
+  if (!body) return;
+  if (!_chatMsgs.length) {
+    body.innerHTML = '<div class="chat-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;display:block;color:var(--text-3)"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Welcome to Harbor Finance Support!<br>How can we help you today?</div>';
+    return;
+  }
+  body.innerHTML = _chatMsgs.map(m => {
+    const t = new Date(m.created_at);
+    const ts = t.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+    return '<div class="chat-msg ' + m.sender + '">' + m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<span class="chat-time">' + ts + '</span></div>';
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  _chatMsgs.push({ sender:'user', message:msg, created_at:new Date().toISOString() });
+  renderChat();
+  try {
+    await apiFetch('/support/messages', { method:'POST', body:JSON.stringify({ message:msg }) });
+  } catch(e) {}
+}
+async function checkUnread() {
+  try {
+    const r = await apiFetch('/support/unread');
+    if (!r.ok) return;
+    const d = await r.json();
+    const badge = document.getElementById('chatBadge');
+    if (badge && d.unread > 0 && !_chatOpen) {
+      badge.textContent = d.unread;
+      badge.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+setTimeout(function(){
+  const panel = document.getElementById('chatPanel');
+  if (panel && panel.style.display !== 'flex') {
+    _chatOpen = true;
+    panel.style.display = 'flex';
+    loadChatMessages();
+  }
+}, 5 * 60 * 1000);
+setInterval(checkUnread, 30000);
+setTimeout(checkUnread, 5000);
 </script>
+
+<!-- Chat Widget -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  <span class="chat-badge" id="chatBadge">0</span>
+</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-header-av">HF</div>
+      <div>
+        <div class="chat-header-info">Harbor Support</div>
+        <div class="chat-header-status">Online</div>
+      </div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="chat-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;display:block;color:var(--text-3)"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Welcome to Harbor Finance Support!<br>How can we help you today?</div>
+  </div>
+  <div class="chat-input-wrap">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+    <button class="chat-send" onclick="sendChatMsg()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
 </body>
 </html>
