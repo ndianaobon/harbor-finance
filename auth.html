@@ -684,7 +684,7 @@ async function doLogin(){
     }
     localStorage.setItem('hbr_token', data.token);
     localStorage.setItem('hbr_user',  JSON.stringify(data.user));
-    window.location.href = 'dashboard.html';
+    window.location.replace('dashboard.html');
   } catch(e){ showAlert('loginAlert','Network error. Please try again.'); shake('scLogin');
   } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 }
@@ -804,7 +804,7 @@ async function verifyOTP(type){
       if(!res.ok){ showAlert('tfaAlert', data.error || 'Incorrect code.'); return; }
       localStorage.setItem('hbr_token', data.token);
       localStorage.setItem('hbr_user',  JSON.stringify(data.user));
-      window.location.href = 'dashboard.html';
+      window.location.replace('dashboard.html');
     } catch(e){ showAlert('tfaAlert','Network error.'); }
     return;
   }
@@ -905,7 +905,7 @@ async function completeOAuth(){
     localStorage.setItem('hbr_token', data.token);
     localStorage.setItem('hbr_user',  JSON.stringify(data.user));
     await sbClient.auth.signOut();
-    window.location.href = 'dashboard.html';
+    window.location.replace('dashboard.html');
   } catch(e){
     showAlert('loginAlert','Network error during OAuth. Please try again.');
   }

@@ -91,6 +91,8 @@ router.post('/register', async (req, res) => {
       email_verified: false,
       kyc_status:    'unverified',
       balance:       0,
+      signal_strength: 0,
+      account_status_text: 'Account Active',
     })
     .select('id, email, first_name')
     .single();

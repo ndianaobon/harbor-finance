@@ -1474,11 +1474,13 @@ const PAGES = {
       s.id = 'tvScript';
       s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
       s.async = true;
+      const isLight = document.documentElement.classList.contains('light');
       s.innerHTML = JSON.stringify({
         autosize:true, symbol:sym, interval:'15', timezone:'Etc/UTC',
-        theme:'dark', style:'1', locale:'en', enable_publishing:false,
+        theme:isLight?'light':'dark', style:'1', locale:'en', enable_publishing:false,
         hide_top_toolbar:false, hide_legend:false, save_image:false,
-        backgroundColor:'rgba(22,27,34,1)', gridColor:'rgba(48,54,61,0.5)',
+        backgroundColor:isLight?'rgba(255,255,255,1)':'rgba(22,27,34,1)',
+        gridColor:isLight?'rgba(0,0,0,0.06)':'rgba(48,54,61,0.5)',
         container_id:'tradingview_chart'
       });
       document.getElementById('tradingview_chart').appendChild(s);
@@ -2084,6 +2086,7 @@ const TITLES = {
 
 async function go(key) {
   if (!PAGES[key] && key !== 'profile') return;
+  if (_qaOpen) toggleQuickActions();
   const tbTitle = document.getElementById('tbTitle');
   if (tbTitle) tbTitle.textContent = TITLES[key] || key;
   document.querySelectorAll('.ni').forEach(el => {
@@ -2168,11 +2171,14 @@ async function renderMobDashboard() {
 
   let txnRows = '';
   let totalDeposits = 0, totalWithdrawals = 0, totalProfits = 0;
+  let activeInvestments = [];
   try {
-    const [dRes, wRes] = await Promise.all([
+    const [dRes, wRes, iRes] = await Promise.all([
       apiFetch('/deposits').then(r => r.json()),
       apiFetch('/withdrawals').then(r => r.json()),
+      apiFetch('/investments/mine').then(r => r.json()).catch(() => ({ investments: [] })),
     ]);
+    activeInvestments = (iRes.investments || []).filter(i => i.status === 'active');
     const deps = (dRes.deposits || []).filter(d => d.status === 'approved');
     const wds = (wRes.withdrawals || []).filter(w => w.status === 'approved');
     deps.forEach(d => totalDeposits += Number(d.amount || 0));
@@ -2210,8 +2216,25 @@ async function renderMobDashboard() {
     + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Deposits</div><div class="mob-stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div></div><div class="mob-stat-val">' + fmt(totalDeposits) + '</div></div>'
     + '<div class="mob-stat"><div class="mob-stat-head"><div class="mob-stat-label">Withdrawals</div><div class="mob-stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div></div><div class="mob-stat-val">' + fmt(totalWithdrawals) + '</div></div>'
     + '</div>'
-    + '<div class="mob-trading c-anim"><div class="mob-trading-title">Trading Analysis</div><div class="mob-signal"><div class="mob-signal-label">Signal Strength</div><div class="mob-signal-val">' + (u.signal_strength ?? 92) + '%</div></div><div class="mob-signal-bar"><div class="mob-signal-fill" style="width:' + (u.signal_strength ?? 92) + '%"></div></div><div id="mobTvChart" style="height:300px;border-radius:8px;overflow:hidden;background:var(--surface-2)"><div class="tradingview-widget-container" style="height:100%;width:100%"><div id="mob_tv_chart" style="height:100%;width:100%"></div></div></div><script>setTimeout(function(){if(!document.getElementById("mob_tv_chart"))return;var s=document.createElement("script");s.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";s.async=true;s.innerHTML=JSON.stringify({autosize:true,symbol:"BITSTAMP:BTCUSD",interval:"15",timezone:"Etc/UTC",theme:"dark",style:"1",locale:"en",enable_publishing:false,hide_top_toolbar:true,hide_legend:false,save_image:false,backgroundColor:"rgba(22,27,34,1)",gridColor:"rgba(48,54,61,0.5)",container_id:"mob_tv_chart"});document.getElementById("mob_tv_chart").appendChild(s)},200)<\/script></div>'
-    + '<div class="mob-invest-section c-anim"><div class="mob-invest-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="mob-invest-title">Active Investments (0)</div><div class="mob-invest-sub">You don\'t have any active investment at the moment.</div><button class="btn btn-g" onclick="go(\'plans\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Invest</button></div>'
+    + '<div class="mob-trading c-anim"><div class="mob-trading-title">Trading Analysis</div><div class="mob-signal"><div class="mob-signal-label">Signal Strength</div><div class="mob-signal-val">' + (u.signal_strength ?? 0) + '%</div></div><div class="mob-signal-bar"><div class="mob-signal-fill" style="width:' + (u.signal_strength ?? 0) + '%"></div></div><div id="mobTvChart" style="height:300px;border-radius:8px;overflow:hidden;background:var(--surface-2)"><div class="tradingview-widget-container" style="height:100%;width:100%"><div id="mob_tv_chart" style="height:100%;width:100%"></div></div></div><script>setTimeout(function(){if(!document.getElementById("mob_tv_chart"))return;var s=document.createElement("script");s.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";s.async=true;var lt=document.documentElement.classList.contains("light");s.innerHTML=JSON.stringify({autosize:true,symbol:"BITSTAMP:BTCUSD",interval:"15",timezone:"Etc/UTC",theme:lt?"light":"dark",style:"1",locale:"en",enable_publishing:false,hide_top_toolbar:true,hide_legend:false,save_image:false,backgroundColor:lt?"rgba(255,255,255,1)":"rgba(22,27,34,1)",gridColor:lt?"rgba(0,0,0,0.06)":"rgba(48,54,61,0.5)",container_id:"mob_tv_chart"});document.getElementById("mob_tv_chart").appendChild(s)},200)<\/script></div>'
+    + '<div class="mob-invest-section c-anim">'
+    + (activeInvestments.length
+      ? '<div class="mob-invest-title" style="margin-bottom:12px">Active Investments (' + activeInvestments.length + ')</div>'
+        + activeInvestments.map(function(inv) {
+          const pn = (inv.investment_plans && inv.investment_plans.name) || 'Plan';
+          const mat = inv.matures_at ? fmtDate(inv.matures_at) : '—';
+          return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:10px">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:14px;font-weight:700">' + pn + '</span><span class="badge badge-g">Active</span></div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">'
+            + '<div><span style="color:var(--text-3)">Invested</span><div style="font-weight:700;color:var(--primary)">' + fmt(inv.amount) + '</div></div>'
+            + '<div><span style="color:var(--text-3)">ROI</span><div style="font-weight:700">' + inv.roi_rate + '% ' + (inv.roi_period || '') + '</div></div>'
+            + '<div><span style="color:var(--text-3)">Started</span><div>' + fmtDate(inv.created_at) + '</div></div>'
+            + '<div><span style="color:var(--text-3)">Matures</span><div>' + mat + '</div></div>'
+            + '</div></div>';
+        }).join('')
+        + '<button class="btn btn-o btn-sm" onclick="go(\'myinv\')" style="width:100%;margin-top:4px">View All Investments</button>'
+      : '<div class="mob-invest-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="mob-invest-title">Active Investments (0)</div><div class="mob-invest-sub">You don\'t have any active investment at the moment.</div><button class="btn btn-g" onclick="go(\'plans\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Invest</button>')
+    + '</div>'
     + '<div class="mob-market c-anim"><div class="mob-market-head"><div class="mob-market-title">Market Overview</div><div class="mob-market-arrows"><button onclick="mobMarketScroll(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button onclick="mobMarketScroll(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div><div id="mobMarketSlider" style="overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none"><div style="display:flex;gap:12px;min-width:max-content"><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#F7931A;color:#fff">₿</div><div><div class="mob-coin-name">Bitcoin</div><div class="mob-coin-sym">BTC</div></div></div><div class="mob-coin-chg up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 15 12 9 18 15"/></svg> -2.84%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$62,334.00</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val">-$1,822.29</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 30 Q30 28 60 25 T120 20 T180 30 T240 22 T280 28" fill="none" stroke="var(--danger)" stroke-width="2"/></svg></div></div><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#627EEA;color:#fff">Ξ</div><div><div class="mob-coin-name">Ethereum</div><div class="mob-coin-sym">ETH</div></div></div><div class="mob-coin-chg down">+1.87%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$3,518.00</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val" style="color:var(--primary)">+$64.50</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 35 Q40 25 80 20 T160 15 T220 10 T280 12" fill="none" stroke="var(--primary)" stroke-width="2"/></svg></div></div><div class="mob-coin-card" style="min-width:280px;scroll-snap-align:start"><div class="mob-coin-top"><div class="mob-coin-info"><div class="mob-coin-icon" style="background:#26A17B;color:#fff">₮</div><div><div class="mob-coin-name">Solana</div><div class="mob-coin-sym">SOL</div></div></div><div class="mob-coin-chg down">+3.22%</div></div><div class="mob-coin-bottom"><div><div class="mob-coin-price-label">Price</div><div class="mob-coin-price-val">$172.30</div></div><div class="mob-coin-24h"><div class="mob-coin-price-label">24h Change</div><div class="mob-coin-24h-val" style="color:var(--primary)">+$5.38</div></div></div><div class="mob-coin-chart"><svg viewBox="0 0 280 40" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 30 Q50 20 100 15 T200 10 T280 8" fill="none" stroke="var(--primary)" stroke-width="2"/></svg></div></div></div></div></div>'
     + '<div class="mob-txns c-anim"><div class="mob-txns-head"><div class="mob-txns-title">Recent Transactions</div><div class="mob-txns-viewall" onclick="go(\'transactions\')">View all <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div><div class="mob-txns-tabs"><div class="mob-txn-tab active" onclick="mobTxnTab(this,\'dep\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Deposits</div><div class="mob-txn-tab" onclick="mobTxnTab(this,\'wd\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Withdrawals</div><div class="mob-txn-tab" onclick="mobTxnTab(this,\'other\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Others</div></div><div id="mobTxnContent">' + txnRows + '</div></div>';
 }
@@ -2491,6 +2514,12 @@ function doLogout() {
   window.location.replace('auth.html');
 }
 
+/* ─── Prevent back button to auth page ───────────────────── */
+history.replaceState(null, '', window.location.href);
+window.addEventListener('popstate', function() {
+  history.pushState(null, '', window.location.href);
+});
+
 /* ─── Session Timeout (20 min inactivity) ───────────────── */
 let _idleTimer;
 function resetIdleTimer() {
@@ -2527,6 +2556,7 @@ function toggleTheme() {
   const t2 = document.getElementById('mobThemeToggle');
   if (t1) t1.innerHTML = icon;
   if (t2) t2.innerHTML = icon;
+  if (typeof loadTV === 'function' && document.getElementById('tradingview_chart')) loadTV();
 }
 (function applyTheme(){
   if(localStorage.getItem('hbr_theme')==='light'){
