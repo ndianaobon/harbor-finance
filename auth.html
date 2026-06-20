@@ -719,6 +719,7 @@ async function doRegister(){
     _pendingUserId = data.userId; _pendingEmail = email;
     document.getElementById('verifyEmail').textContent = email;
     show('scEmailVerify'); startResend();
+    if(data.emailSent === false){ showAlert('verifyAlert','We could not send the verification email. Please tap "Resend Code" below.','warn'); }
   } catch(e){ showAlert('regAlert','Network error. Please try again.'); shake('scRegister');
   } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
 }

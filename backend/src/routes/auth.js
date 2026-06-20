@@ -198,7 +198,12 @@ router.post('/resend-otp', async (req, res) => {
     used:       false,
   });
 
-  await sendVerificationEmail(user.email, otp, user.first_name);
+  try {
+    await sendVerificationEmail(user.email, otp, user.first_name);
+  } catch (mailErr) {
+    console.error('[MAILER] Resend OTP failed:', mailErr.message);
+    return res.status(500).json({ error: 'Failed to send email. Please check your email address or try again later.' });
+  }
 
   res.json({ message: 'A new verification code has been sent to your email.' });
 });
