@@ -857,6 +857,7 @@ async function viewUser(id){
   const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';
   openModal('User Profile — '+nm,
     '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px"><div class="av" style="width:52px;height:52px;font-size:18px">'+ini+'</div><div><div style="font-size:16px;font-weight:600">'+nm+'</div><div style="font-size:13px;color:var(--text-3)">'+u.email+'</div></div></div>'+
+    '<div class="info-row"><span class="k">Username</span><span class="v">@'+(u.username||'—')+'</span></div>'+
     '<div class="info-row"><span class="k">User ID</span><span class="v" style="font-family:monospace;font-size:11px">'+u.id+'</span></div>'+
     '<div class="info-row"><span class="k">Country</span><span class="v">'+(u.country||'—')+'</span></div>'+
     '<div class="info-row"><span class="k">Phone</span><span class="v">'+(u.phone||'—')+'</span></div>'+

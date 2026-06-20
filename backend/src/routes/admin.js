@@ -43,7 +43,7 @@ router.get('/users', async (req, res) => {
 
   let query = supabase
     .from('users')
-    .select('id, email, first_name, last_name, country, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at', { count: 'exact' })
+    .select('id, email, username, first_name, last_name, country, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
 
@@ -59,7 +59,7 @@ router.get('/users', async (req, res) => {
 router.get('/users/:id', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, country, phone, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at, tfa_enabled, signal_strength, account_status_text')
+    .select('id, email, username, first_name, last_name, country, phone, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at, tfa_enabled, signal_strength, account_status_text')
     .eq('id', req.params.id)
     .single();
   if (error || !data) return res.status(404).json({ error: 'User not found' });

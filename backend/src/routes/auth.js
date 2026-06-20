@@ -26,9 +26,11 @@ function signToken(userId) {
 const registerSchema = z.object({
   firstName:    z.string().min(1).max(60),
   lastName:     z.string().min(1).max(60),
+  username:     z.string().min(3).max(30).regex(/^[a-z0-9_]+$/, 'Username can only contain lowercase letters, numbers, and underscores'),
   email:        z.string().email(),
   password:     z.string().min(8).max(100),
   phone:        z.string().min(7, 'Phone number is required').max(20),
+  country:      z.string().min(1, 'Country is required').max(60),
   referralCode: z.string().optional(),
 });
 
@@ -44,10 +46,11 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Validation error', details: parsed.error.flatten() });
   }
 
-  const { firstName, lastName, email, password, phone, referralCode } = parsed.data;
+  const { firstName, lastName, username, email, password, phone, country, referralCode } = parsed.data;
   const emailLower = email.toLowerCase().trim();
+  const usernameLower = username.toLowerCase().trim();
 
-  // Check existing user
+  // Check existing email
   const { data: existing } = await supabase
     .from('users')
     .select('id')
@@ -56,6 +59,17 @@ router.post('/register', async (req, res) => {
 
   if (existing) {
     return res.status(409).json({ error: 'An account with this email already exists' });
+  }
+
+  // Check existing username
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', usernameLower)
+    .maybeSingle();
+
+  if (existingUser) {
+    return res.status(409).json({ error: 'This username is already taken' });
   }
 
   // Resolve referrer
@@ -81,9 +95,11 @@ router.post('/register', async (req, res) => {
     .insert({
       first_name:    firstName,
       last_name:     lastName,
+      username:      usernameLower,
       email:         emailLower,
       password_hash: passwordHash,
       phone:         phone || null,
+      country:       country || null,
       referred_by:   referredBy,
       referral_code: myReferralCode,
       status:        'active',
@@ -99,7 +115,36 @@ router.post('/register', async (req, res) => {
 
   if (insertErr) {
     console.error('[REGISTER]', insertErr);
+    if (insertErr.code === '23505' && insertErr.message?.includes('username')) {
+      return res.status(409).json({ error: 'This username is already taken' });
+    }
     return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+  }
+
+  // Credit $15 referral bonus to the referrer
+  if (referredBy) {
+    const REFERRAL_BONUS = 15;
+    const { data: referrer } = await supabase
+      .from('users').select('balance').eq('id', referredBy).single();
+    if (referrer) {
+      await supabase.from('users').update({
+        balance: Number(referrer.balance) + REFERRAL_BONUS,
+      }).eq('id', referredBy);
+
+      await supabase.from('referral_earnings').insert({
+        beneficiary_id: referredBy,
+        referral_id:    user.id,
+        amount:         REFERRAL_BONUS,
+        level:          1,
+      });
+
+      await supabase.from('notifications').insert({
+        user_id: referredBy,
+        title:   'Referral Bonus!',
+        body:    `You earned $${REFERRAL_BONUS} because ${firstName} joined using your referral link!`,
+        type:    'success',
+      });
+    }
   }
 
   // Generate & store OTP
@@ -454,7 +499,7 @@ router.post('/reset-password', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   const { data: user } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, referred_by, balance, tfa_enabled, created_at, signal_strength, account_status_text')
+    .select('id, email, username, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, referred_by, balance, tfa_enabled, created_at, signal_strength, account_status_text')
     .eq('id', req.user.id)
     .single();
 
