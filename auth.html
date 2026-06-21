@@ -272,7 +272,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <label>Email Address</label>
           <div class="input-wrap has-icon">
             <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <input type="email" id="regEmail" placeholder="you@example.com">
+            <input type="email" id="regEmail" placeholder="user@gmail.com">
           </div>
           <div class="field-err" id="errEmail">Enter a valid email address</div>
         </div>
@@ -736,17 +736,19 @@ async function doRegister(){
   let ok = true;
   const first = document.getElementById('regFirst').value.trim();
   const last  = document.getElementById('regLast').value.trim();
-  const username = document.getElementById('regUsername').value.trim().toLowerCase();
+  const username = document.getElementById('regUsername').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
   const email = document.getElementById('regEmail').value.trim();
   const dialCode = document.getElementById('regDialCode').value;
   const phoneNum = document.getElementById('regPhone').value.trim();
   const country = document.getElementById('regCountry').value;
+  const referralCode = (document.getElementById('regRef').value||'').trim();
   const pass  = document.getElementById('regPass').value;
   const pass2 = document.getElementById('regPass2').value;
   const terms = document.getElementById('agreeTerms').checked;
+  document.getElementById('regUsername').value = username;
   fieldErr('errFirst', !first, 'First name is required');
   fieldErr('errLast',  !last,  'Last name is required');
-  fieldErr('errUsername', !username || username.length < 3, 'Username must be at least 3 characters');
+  fieldErr('errUsername', !username || username.length < 3, 'Username must be at least 3 characters (letters, numbers, underscore only)');
   fieldErr('errEmail', !email.includes('@'), 'Enter a valid email address');
   fieldErr('errPhone', !phoneNum, 'Phone number is required');
   fieldErr('errCountry', !country, 'Country is required');
@@ -758,8 +760,10 @@ async function doRegister(){
   const phone = dialCode + phoneNum;
   const btn = document.querySelector('#scRegister .btn-main');
   btn.disabled = true; btn.textContent = 'Creating account…';
+  const body = {firstName: first, lastName: last, username, email, password: pass, phone, country};
+  if(referralCode) body.referralCode = referralCode;
   try {
-    const res  = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({firstName: first, lastName: last, username, email, password: pass, phone, country}) });
+    const res  = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if(!res.ok){ showAlert('regAlert', data.error || 'Registration failed. Please try again.'); shake('scRegister'); return; }
     _pendingUserId = data.userId; _pendingEmail = email;

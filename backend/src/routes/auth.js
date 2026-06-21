@@ -31,7 +31,7 @@ const registerSchema = z.object({
   password:     z.string().min(8).max(100),
   phone:        z.string().min(7, 'Phone number is required').max(20),
   country:      z.string().min(1, 'Country is required').max(60),
-  referralCode: z.string().optional(),
+  referralCode: z.string().optional().or(z.literal('')),
 });
 
 const loginSchema = z.object({
@@ -43,7 +43,10 @@ const loginSchema = z.object({
 router.post('/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Validation error', details: parsed.error.flatten() });
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    const firstField = Object.keys(fieldErrors)[0];
+    const firstMsg = firstField ? `${firstField}: ${fieldErrors[firstField][0]}` : 'Please check your input';
+    return res.status(400).json({ error: firstMsg, details: parsed.error.flatten() });
   }
 
   const { firstName, lastName, username, email, password, phone, country, referralCode } = parsed.data;
