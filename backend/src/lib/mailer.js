@@ -1,28 +1,34 @@
 const nodemailer = require('nodemailer');
 
-const port = parseInt(process.env.EMAIL_PORT || '465');
-const transporter = nodemailer.createTransport({
-  host:   process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port,
-  secure: port === 465,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''),
-  },
-  connectionTimeout: 10000,
-  greetingTimeout:   10000,
-  socketTimeout:     15000,
-});
+const RESEND_KEY = process.env.RESEND_API_KEY;
+const USE_RESEND = !!RESEND_KEY;
 
-// Verify connection on startup (non-fatal)
-transporter.verify((err) => {
-  if (err) console.warn('[MAILER] Connection warning:', err.message);
-  else     console.log('[MAILER] SMTP connection ready on port ' + port);
-});
+// SMTP transporter (fallback for local dev when RESEND_API_KEY is not set)
+let transporter = null;
+if (!USE_RESEND) {
+  const port = parseInt(process.env.EMAIL_PORT || '465');
+  transporter = nodemailer.createTransport({
+    host:   process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port,
+    secure: port === 465,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''),
+    },
+    connectionTimeout: 10000,
+    greetingTimeout:   10000,
+    socketTimeout:     15000,
+  });
+  transporter.verify((err) => {
+    if (err) console.warn('[MAILER] SMTP warning:', err.message);
+    else     console.log('[MAILER] SMTP ready on port ' + port);
+  });
+} else {
+  console.log('[MAILER] Using Resend API');
+}
 
-// Build a From address that always uses EMAIL_USER as the actual sender
-// (Gmail rejects From addresses that don't match the authenticated account)
 function getSenderAddress() {
+  if (USE_RESEND) return process.env.EMAIL_FROM || 'Harbor Finance <onboarding@resend.dev>';
   const user = process.env.EMAIL_USER;
   const from = process.env.EMAIL_FROM || '';
   const nameMatch = from.match(/^([^<]+)</);
@@ -30,9 +36,22 @@ function getSenderAddress() {
   return `${displayName} <${user}>`;
 }
 
-/**
- * Send a 6-digit email verification code.
- */
+async function sendMail({ to, subject, html, text }) {
+  if (USE_RESEND) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: getSenderAddress(), to: [to], subject, html, text }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Resend API error: ${res.status}`);
+    }
+    return res.json();
+  }
+  return transporter.sendMail({ from: getSenderAddress(), to, subject, html, text });
+}
+
 async function sendVerificationEmail(to, code, firstName = '') {
   const html = `
 <!DOCTYPE html>
@@ -94,8 +113,7 @@ async function sendVerificationEmail(to, code, firstName = '') {
 </body>
 </html>`;
 
-  return transporter.sendMail({
-    from:    getSenderAddress(),
+  return sendMail({
     to,
     subject: `${code} is your Harbor Finance verification code`,
     html,
@@ -103,9 +121,6 @@ async function sendVerificationEmail(to, code, firstName = '') {
   });
 }
 
-/**
- * Send a password reset email.
- */
 async function sendPasswordResetEmail(to, resetUrl, firstName = '') {
   const html = `
 <!DOCTYPE html>
@@ -137,8 +152,7 @@ async function sendPasswordResetEmail(to, resetUrl, firstName = '') {
 </body>
 </html>`;
 
-  return transporter.sendMail({
-    from:    getSenderAddress(),
+  return sendMail({
     to,
     subject: 'Reset your Harbor Finance password',
     html,

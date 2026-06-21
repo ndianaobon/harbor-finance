@@ -59,28 +59,20 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/health/email', async (_req, res) => {
-  const config = {
-    EMAIL_HOST:   process.env.EMAIL_HOST   ? 'set' : 'MISSING',
-    EMAIL_PORT:   process.env.EMAIL_PORT   ? 'set' : 'MISSING',
-    EMAIL_USER:   process.env.EMAIL_USER   ? process.env.EMAIL_USER.slice(0,4) + '***' : 'MISSING',
-    EMAIL_PASS:   process.env.EMAIL_PASS   ? 'set (' + (process.env.EMAIL_PASS||'').replace(/\s/g,'').length + ' chars)' : 'MISSING',
-    EMAIL_FROM:   process.env.EMAIL_FROM   ? 'set' : 'MISSING',
-  };
-  const nodemailer = require('nodemailer');
-  const p = parseInt(process.env.EMAIL_PORT || '465');
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: p,
-    secure: p === 465,
-    auth: { user: process.env.EMAIL_USER, pass: (process.env.EMAIL_PASS || '').replace(/\s/g, '') },
-    connectionTimeout: 10000,
-  });
-  try {
-    await transporter.verify();
-    res.json({ status: 'ok', smtp: 'connected', config });
-  } catch (err) {
-    res.json({ status: 'error', smtp: err.message, config });
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    try {
+      const r = await fetch('https://api.resend.com/domains', {
+        headers: { 'Authorization': 'Bearer ' + resendKey },
+      });
+      const ok = r.status === 200;
+      res.json({ status: ok ? 'ok' : 'error', provider: 'resend', api: ok ? 'connected' : 'invalid key (status ' + r.status + ')' });
+    } catch (err) {
+      res.json({ status: 'error', provider: 'resend', api: err.message });
+    }
+    return;
   }
+  res.json({ status: 'error', provider: 'none', message: 'RESEND_API_KEY is not set. Add it to Railway environment variables.' });
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
