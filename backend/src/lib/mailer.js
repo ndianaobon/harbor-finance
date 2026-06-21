@@ -1,19 +1,23 @@
 const nodemailer = require('nodemailer');
 
+const port = parseInt(process.env.EMAIL_PORT || '465');
 const transporter = nodemailer.createTransport({
-  host:   process.env.EMAIL_HOST,
-  port:   parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_SECURE === 'true',
+  host:   process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port,
+  secure: port === 465,
   auth: {
     user: process.env.EMAIL_USER,
     pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''),
   },
+  connectionTimeout: 10000,
+  greetingTimeout:   10000,
+  socketTimeout:     15000,
 });
 
 // Verify connection on startup (non-fatal)
 transporter.verify((err) => {
   if (err) console.warn('[MAILER] Connection warning:', err.message);
-  else     console.log('[MAILER] SMTP connection ready');
+  else     console.log('[MAILER] SMTP connection ready on port ' + port);
 });
 
 // Build a From address that always uses EMAIL_USER as the actual sender

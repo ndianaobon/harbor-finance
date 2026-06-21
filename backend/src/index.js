@@ -67,11 +67,13 @@ app.get('/health/email', async (_req, res) => {
     EMAIL_FROM:   process.env.EMAIL_FROM   ? 'set' : 'MISSING',
   };
   const nodemailer = require('nodemailer');
+  const p = parseInt(process.env.EMAIL_PORT || '465');
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: process.env.EMAIL_SECURE === 'true',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: p,
+    secure: p === 465,
     auth: { user: process.env.EMAIL_USER, pass: (process.env.EMAIL_PASS || '').replace(/\s/g, '') },
+    connectionTimeout: 10000,
   });
   try {
     await transporter.verify();
