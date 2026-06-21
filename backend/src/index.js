@@ -58,6 +58,29 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'Harbor Finance API' });
 });
 
+app.get('/health/email', async (_req, res) => {
+  const config = {
+    EMAIL_HOST:   process.env.EMAIL_HOST   ? 'set' : 'MISSING',
+    EMAIL_PORT:   process.env.EMAIL_PORT   ? 'set' : 'MISSING',
+    EMAIL_USER:   process.env.EMAIL_USER   ? process.env.EMAIL_USER.slice(0,4) + '***' : 'MISSING',
+    EMAIL_PASS:   process.env.EMAIL_PASS   ? 'set (' + (process.env.EMAIL_PASS||'').replace(/\s/g,'').length + ' chars)' : 'MISSING',
+    EMAIL_FROM:   process.env.EMAIL_FROM   ? 'set' : 'MISSING',
+  };
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: process.env.EMAIL_SECURE === 'true',
+    auth: { user: process.env.EMAIL_USER, pass: (process.env.EMAIL_PASS || '').replace(/\s/g, '') },
+  });
+  try {
+    await transporter.verify();
+    res.json({ status: 'ok', smtp: 'connected', config });
+  } catch (err) {
+    res.json({ status: 'error', smtp: err.message, config });
+  }
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRoutes);
 app.use('/api/admin',         adminRoutes);
