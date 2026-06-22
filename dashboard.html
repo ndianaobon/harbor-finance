@@ -2267,14 +2267,16 @@ async function renderMobDashboard() {
   let totalDeposits = 0, totalWithdrawals = 0, totalProfits = 0;
   let activeInvestments = [];
   try {
-    const [dRes, wRes, iRes, rRes] = await Promise.all([
+    const [dRes, wRes, iRes, rRes, pRes] = await Promise.all([
       apiFetch('/deposits').then(r => r.json()),
       apiFetch('/withdrawals').then(r => r.json()),
       apiFetch('/investments/mine').then(r => r.json()).catch(() => ({ investments: [] })),
       apiFetch('/referrals').then(r => r.json()).catch(() => ({})),
+      apiFetch('/investments/profit-history').then(r => r.json()).catch(() => ({ history: [] })),
     ]);
     totalReferrals = rRes.level1Count || 0;
     refEarnings = rRes.totalEarnings || 0;
+    totalProfits = (pRes.history || []).reduce((s, h) => s + Number(h.amount), 0);
     activeInvestments = (iRes.investments || []).filter(i => i.status === 'active');
     const deps = (dRes.deposits || []).filter(d => d.status === 'approved');
     const wds = (wRes.withdrawals || []).filter(w => w.status === 'approved');
