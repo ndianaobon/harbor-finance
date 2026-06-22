@@ -15,7 +15,8 @@ const referralRoutes     = require('./routes/referral');
 const kycRoutes          = require('./routes/kyc');
 const notificationRoutes = require('./routes/notification');
 const supportRoutes      = require('./routes/support');
-const uploadRoutes       = require('./routes/upload');
+let uploadRoutes;
+try { uploadRoutes = require('./routes/upload'); } catch(e) { console.error('[STARTUP] Failed to load upload routes:', e.message); }
 
 const app  = express();
 const PORT = parseInt(process.env.PORT, 10) || 4000;
@@ -56,7 +57,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'Harbor Finance API' });
+  let multerOk = false;
+  try { require('multer'); multerOk = true; } catch(e) {}
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'Harbor Finance API', uploadRoute: !!uploadRoutes, multer: multerOk });
 });
 
 app.get('/health/email', async (_req, res) => {
@@ -105,7 +108,8 @@ app.use('/api/referrals',     referralRoutes);
 app.use('/api/kyc',           kycRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/support',       supportRoutes);
-app.use('/api/upload',        uploadRoutes);
+if (uploadRoutes) app.use('/api/upload', uploadRoutes);
+else app.post('/api/upload', (_req, res) => res.status(500).json({ error: 'Upload module failed to load. Check server logs.' }));
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
