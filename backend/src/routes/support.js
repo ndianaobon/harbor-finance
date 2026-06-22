@@ -1,21 +1,36 @@
 const express  = require('express');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const supabase = require('../lib/supabase');
+const { sendMail } = require('../lib/mailer');
 
 const router = express.Router();
 
 // POST /api/support/messages — user sends a message
 router.post('/messages', requireAuth, async (req, res) => {
-  const { message } = req.body;
+  const { message, fileUrl, fileName } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
 
-  const { data, error } = await supabase.from('support_messages').insert({
+  const insertData = {
     user_id: req.user.id,
     sender: 'user',
     message: message.trim(),
-  }).select().single();
+  };
+  if (fileUrl) insertData.file_url = fileUrl;
+  if (fileName) insertData.file_name = fileName;
 
+  const { data, error } = await supabase.from('support_messages').insert(insertData).select().single();
   if (error) return res.status(500).json({ error: 'Failed to send message' });
+
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    sendMail({
+      to: adminEmail,
+      subject: 'New support message from ' + (req.user.first_name || req.user.email),
+      html: '<div style="font-family:Arial;padding:16px;background:#161b22;color:#e6edf3;border-radius:8px"><h3 style="color:#2ea043;margin:0 0 8px">New Support Message</h3><p><strong>' + (req.user.first_name || '') + ' ' + (req.user.last_name || '') + '</strong> (' + req.user.email + ')</p><div style="background:#0d1117;padding:12px;border-radius:6px;margin:8px 0">' + message.trim() + '</div></div>',
+      text: 'New support message from ' + req.user.email + ': ' + message.trim(),
+    }).catch(() => {});
+  }
+
   res.status(201).json({ message: data });
 });
 

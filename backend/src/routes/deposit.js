@@ -6,18 +6,21 @@ const router = express.Router();
 
 // POST /api/deposits — user submits deposit request
 router.post('/', requireAuth, async (req, res) => {
-  const { method, amount, txHash, notes } = req.body;
+  const { method, amount, txHash, notes, screenshotUrl } = req.body;
   if (!method || !amount) return res.status(400).json({ error: 'Method and amount are required' });
   if (Number(amount) <= 0) return res.status(400).json({ error: 'Amount must be greater than 0' });
 
-  const { data, error } = await supabase.from('deposits').insert({
+  const insertData = {
     user_id:  req.user.id,
     method,
     amount:   Number(amount),
     tx_hash:  txHash || null,
     notes:    notes || null,
     status:   'pending',
-  }).select().single();
+  };
+  if (screenshotUrl) insertData.screenshot_url = screenshotUrl;
+
+  const { data, error } = await supabase.from('deposits').insert(insertData).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to submit deposit' });
   res.status(201).json({ message: 'Deposit submitted and pending admin approval', deposit: data });

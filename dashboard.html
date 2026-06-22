@@ -1187,6 +1187,13 @@ const PAGES = {
         </button>
       </div>
       <div class="fg"><label class="flbl">Transaction Hash / Payment Proof</label><input type="text" class="fi" id="fundTxHash" placeholder="Paste TX hash here"></div>
+      <div class="fg"><label class="flbl">Payment Screenshot (optional)</label>
+        <div id="depScreenshot" onclick="depositScreenshot()" style="border:2px dashed var(--border);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 6px;display:block;color:var(--text-3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <div style="font-size:12px;color:var(--text-2)">Click to upload screenshot</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px">JPG, PNG · Max 5MB</div>
+        </div>
+      </div>
       <div id="fundErr" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
       <button class="btn btn-g btn-w-lg" id="fundBtn" onclick="submitDeposit()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1755,147 +1762,169 @@ const PAGES = {
   },
 
   kyc() {
+    const u = _user || {};
+    const kycSts = u.kyc_status || 'unverified';
+    const stsColor = kycSts==='verified'?'var(--primary)':kycSts==='pending'?'#e3b341':'var(--text-3)';
+    const stsLabel = kycSts==='verified'?'Verified':kycSts==='pending'?'Under Review':'Unverified';
     return `
-    <div style="margin-bottom:16px" class="c-anim">
-      <h2 style="font-size:16px;font-weight:800">KYC Verification</h2>
-      <p style="font-size:12px;color:var(--text-2);margin-top:3px">Complete identity verification to unlock withdrawals and higher limits</p>
-    </div>
-
-    <!-- Status Banner -->
-    <div style="background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.3);border-radius:var(--r-lg);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px" class="c-anim">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:#e3b341">Verification Pending</div>
-        <div style="font-size:12px;color:var(--text-3)">Upload your documents below. Review takes 1–3 business days.</div>
+    <div class="card c-anim" style="max-width:640px">
+      <div class="card-p" style="border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="card-title">KYC Verification Form</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-2)">To comply with regulations, each participant will have to go through identity verification (KYC/AML) to prevent fraud.</div>
       </div>
-      <span class="badge" style="background:rgba(227,179,65,.15);color:#e3b341;margin-left:auto">Unverified</span>
-    </div>
+      <div class="card-p">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-size:12px;color:var(--text-2)">Current Status</span>
+          <span style="font-size:12px;font-weight:700;color:${stsColor}">${stsLabel}</span>
+        </div>
+        ${kycSts==='verified'?'<div style="background:rgba(46,160,67,.08);border:1px solid rgba(46,160,67,.25);border-radius:var(--r);padding:14px;text-align:center;color:var(--primary);font-size:13px;font-weight:600">Your identity has been verified successfully.</div>':''}
+        ${kycSts==='pending'?'<div style="background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.25);border-radius:var(--r);padding:14px;text-align:center;color:#e3b341;font-size:13px;font-weight:600">Your documents are under review. This usually takes 1-3 business days.</div>':''}
+        ${kycSts!=='verified'&&kycSts!=='pending'?`
+        <div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:var(--r);padding:10px 14px;margin-bottom:20px;font-size:12px;color:var(--danger);display:flex;align-items:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Please type carefully. You can't edit these details once submitted.
+        </div>
 
-    <!-- Steps -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px" class="c-anim">
-      ${kycStep('1','Identity Document','Upload a government-issued ID','done')}
-      ${kycStep('2','Selfie / Liveness','Photo holding your ID','active')}
-      ${kycStep('3','Proof of Address','Recent utility bill or bank statement','pending')}
-    </div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Personal Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><label class="flbl">First Name *</label><input type="text" class="fi" id="kycFirst" value="${u.first_name||''}" placeholder="First name"></div>
+          <div class="fg"><label class="flbl">Last Name *</label><input type="text" class="fi" id="kycLast" value="${u.last_name||''}" placeholder="Last name"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><label class="flbl">Email *</label><input type="email" class="fi" id="kycEmail" value="${u.email||''}" readonly style="color:var(--text-3)"></div>
+          <div class="fg"><label class="flbl">Phone Number *</label><input type="tel" class="fi" id="kycPhone" value="${u.phone||''}" placeholder="Phone number"></div>
+        </div>
+        <div class="fg"><label class="flbl">Date of Birth *</label><input type="date" class="fi" id="kycDob" style="color:var(--text)"></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="c-anim">
-      <!-- Document Upload -->
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="card card-p">
-          <div class="card-title" style="margin-bottom:4px">Identity Document</div>
-          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Choose your document type and upload clear, readable photos.</p>
-          <div class="fg"><label class="flbl">Document Type</label>
-            <select class="fi" id="docType">
-              <option>Passport</option>
-              <option>National ID Card</option>
-              <option>Driver's License</option>
-            </select>
+        <div style="font-size:14px;font-weight:700;margin:20px 0 14px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> Your Address</div>
+        <div class="fg"><label class="flbl">Address Line *</label><input type="text" class="fi" id="kycAddr" placeholder="Street address"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><label class="flbl">City *</label><input type="text" class="fi" id="kycCity" placeholder="City"></div>
+          <div class="fg"><label class="flbl">State *</label><input type="text" class="fi" id="kycState" placeholder="State / Province"></div>
+        </div>
+        <div class="fg"><label class="flbl">Country *</label><input type="text" class="fi" id="kycCountry" value="${u.country||''}" placeholder="Country"></div>
+
+        <div style="font-size:14px;font-weight:700;margin:20px 0 14px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Document Upload</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <label style="flex:1;min-width:100px;text-align:center;padding:10px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:600;transition:.2s" id="dtPassport" onclick="selectDocType(this,'International Passport')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 4px"><rect x="3" y="4" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            Int'l Passport
+          </label>
+          <label style="flex:1;min-width:100px;text-align:center;padding:10px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:600;transition:.2s" onclick="selectDocType(this,'National ID')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 4px"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            National ID
+          </label>
+          <label style="flex:1;min-width:100px;text-align:center;padding:10px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:600;transition:.2s" onclick="selectDocType(this,'Drivers License')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 4px"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4"/></svg>
+            Driver's License
+          </label>
+        </div>
+        <input type="hidden" id="kycDocType" value="International Passport">
+
+        <div style="background:rgba(227,179,65,.06);border:1px solid rgba(227,179,65,.15);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:11px;color:#e3b341;line-height:1.7">
+          <div style="font-weight:700;margin-bottom:4px">To avoid delays, please ensure:</div>
+          <div>✓ Document must not have expired</div>
+          <div>✓ Document should be in good condition and clearly visible</div>
+          <div>✓ Make sure there is no light glare on the card</div>
+        </div>
+
+        <div class="fg">
+          <label class="flbl">Upload Front Side *</label>
+          <div id="docFront" onclick="kycUpload('docFront')" style="border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block;color:var(--text-3)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-size:12px;color:var(--text-2);font-weight:500">Click to upload</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:3px">JPG, PNG or PDF · Max 5MB</div>
           </div>
-          <div class="fg">
-            <label class="flbl">Front Side</label>
-            ${uploadZone('docFront','Front of document','front')}
-          </div>
-          <div class="fg">
-            <label class="flbl">Back Side</label>
-            ${uploadZone('docBack','Back of document (if applicable)','back')}
+        </div>
+        <div class="fg">
+          <label class="flbl">Upload Back Side</label>
+          <div id="docBack" onclick="kycUpload('docBack')" style="border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block;color:var(--text-3)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-size:12px;color:var(--text-2);font-weight:500">Click to upload</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:3px">JPG, PNG or PDF · Max 5MB</div>
           </div>
         </div>
 
-        <div class="card card-p">
-          <div class="card-title" style="margin-bottom:4px">Proof of Address</div>
-          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Must be dated within the last 3 months.</p>
-          <div class="fg"><label class="flbl">Document Type</label>
-            <select class="fi">
-              <option>Utility Bill</option>
-              <option>Bank Statement</option>
-              <option>Government Letter</option>
-            </select>
-          </div>
-          <div class="fg">${uploadZone('docPoa','Proof of address document','poa')}</div>
-        </div>
-      </div>
-
-      <!-- Selfie + Info -->
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="card card-p">
-          <div class="card-title" style="margin-bottom:4px">Selfie with ID</div>
-          <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Take a clear photo of your face while holding your ID document.</p>
-          ${uploadZone('docSelfie','Selfie holding your ID','selfie')}
-          <div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--r);font-size:11px;color:var(--text-3);line-height:1.8">
-            <div>✓ Face must be clearly visible</div>
-            <div>✓ Document text must be readable</div>
-            <div>✓ No hats, sunglasses, or face coverings</div>
-            <div>✓ Good lighting, no glare</div>
-          </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin:20px 0 16px">
+          <input type="checkbox" id="kycConfirm" style="width:16px;height:16px;margin-top:2px;accent-color:var(--primary);flex-shrink:0;cursor:pointer">
+          <label for="kycConfirm" style="font-size:12px;color:var(--text-2);cursor:pointer">All the information I have entered is correct. I understand that providing false information may result in account suspension.</label>
         </div>
 
-        <div class="card card-p">
-          <div class="card-title" style="margin-bottom:12px">Verification Requirements</div>
-          <div style="font-size:12px;color:var(--text-2);line-height:2">
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Identity document verified
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Selfie pending upload
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e3b341" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Proof of address pending
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Admin review (1–3 days)
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-g btn-w c-anim" onclick="submitKYC()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Submit for Verification
+        <button class="btn btn-g btn-w" id="kycSubmitBtn" onclick="submitKYC()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Submit Application
         </button>
+        `:''}
       </div>
     </div>
 
     <script>
+    let _kycDocType = 'International Passport';
+    function selectDocType(el, type) {
+      _kycDocType = type;
+      document.getElementById('kycDocType').value = type;
+      el.parentElement.querySelectorAll('label').forEach(l => { l.style.borderColor='var(--border)'; l.style.background='transparent'; });
+      el.style.borderColor='var(--primary)'; el.style.background='var(--primary-dim)';
+    }
+    (function(){ const el=document.getElementById('dtPassport'); if(el){ el.style.borderColor='var(--primary)'; el.style.background='var(--primary-dim)'; } })();
+
+    async function kycUpload(id) {
+      const input = document.createElement('input');
+      input.type='file'; input.accept='image/*,.pdf';
+      input.onchange = async function(){
+        if(!this.files[0]) return;
+        const zone = document.getElementById(id);
+        const file = this.files[0];
+        zone.innerHTML = '<div style="color:var(--text-2);font-size:12px">Uploading...</div>';
+        zone.style.borderColor='var(--primary)';
+        try {
+          const data = await uploadFile(file, 'kyc-documents');
+          zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+file.name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Click to replace</div>';
+          zone.style.background='var(--primary-dim)';
+          zone.dataset.fileUrl = data.url;
+        } catch(e){
+          zone.innerHTML = '<div style="color:var(--danger);font-size:12px">Upload failed. Click to retry.</div>';
+          zone.style.borderColor='var(--danger)';
+          zone.dataset.fileUrl = '';
+          toast(e.message||'Upload failed');
+        }
+      };
+      input.click();
+    }
+
     async function submitKYC(){
-      const docType = document.getElementById('docType')?.value;
-      const frontEl = document.getElementById('docFront');
-      const selfieEl = document.getElementById('selfieZone');
-      // Check files were selected (we store filename in dataset)
-      if (!frontEl?.dataset.fileName) { toast('Please upload the front of your ID document.','error'); return; }
-      if (!selfieEl?.dataset.fileName) { toast('Please upload your selfie photo.','error'); return; }
-      const btn = document.querySelector('[onclick="submitKYC()"]');
+      const frontUrl = document.getElementById('docFront')?.dataset?.fileUrl;
+      if (!frontUrl) { toast('Please upload the front of your ID document.'); return; }
+      if (!document.getElementById('kycConfirm')?.checked) { toast('Please confirm the information is correct.'); return; }
+      const btn = document.getElementById('kycSubmitBtn');
       if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
       try {
-        // In production: upload files to Supabase Storage first to get public URLs.
-        // For now we send placeholder URLs so the DB record is created.
         const payload = {
-          documentType: docType || 'Passport',
-          frontUrl:  frontEl.dataset.fileUrl  || 'pending-upload/' + (frontEl.dataset.fileName  || 'front.jpg'),
-          backUrl:   document.getElementById('docBack')?.dataset.fileUrl || null,
-          selfieUrl: selfieEl.dataset.fileUrl || 'pending-upload/' + (selfieEl.dataset.fileName || 'selfie.jpg'),
-          poaUrl:    document.getElementById('poaZone')?.dataset.fileUrl || null,
+          documentType: _kycDocType,
+          frontUrl: frontUrl,
+          backUrl: document.getElementById('docBack')?.dataset?.fileUrl || null,
+          selfieUrl: frontUrl,
+          poaUrl: null,
+          dob: document.getElementById('kycDob')?.value || null,
+          addressLine: document.getElementById('kycAddr')?.value || null,
+          city: document.getElementById('kycCity')?.value || null,
+          state: document.getElementById('kycState')?.value || null,
+          country: document.getElementById('kycCountry')?.value || null,
         };
         const r = await apiFetch('/kyc/submit', { method:'POST', body: JSON.stringify(payload) });
         const d = await r.json();
-        if (!r.ok) { toast(d.error || 'Submission failed. Try again.','error'); return; }
-        toast('KYC submitted! Review takes 1–3 business days.');
+        if (!r.ok) { toast(d.error || 'Submission failed.'); return; }
+        toast('KYC submitted! Review takes 1-3 business days.');
+        if(_user) _user.kyc_status = 'pending';
         setTimeout(()=>go('kyc'), 1500);
-      } catch(e) {
-        toast('Network error. Please try again.','error');
-      } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Submit for Verification'; }
-      }
+      } catch(e) { toast('Network error.'); }
+      finally { if (btn) { btn.disabled = false; btn.textContent = 'Submit Application'; } }
     }
-    function triggerUpload(id){
-      const el = document.createElement('input');
-      el.type='file'; el.accept='image/*,.pdf';
-      el.onchange = function(){
-        if(!this.files[0]) return;
-        const zone = document.getElementById(id);
-        zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+this.files[0].name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Click to replace</div>';
-        zone.style.borderColor='var(--primary)';
-        zone.style.background='var(--primary-dim)';
-        zone.dataset.fileName = this.files[0].name;
-        zone.dataset.fileUrl  = '';
+    function triggerUpload(id){ kycUpload(id); }
+    <\/script>`;
       };
       el.click();
     }
@@ -2509,10 +2538,30 @@ function toast(msg) {
 
 
 /* ─── Form action handlers ────────────────────────────────── */
+function depositScreenshot() {
+  const input = document.createElement('input');
+  input.type='file'; input.accept='image/*';
+  input.onchange = async function(){
+    if(!this.files[0]) return;
+    const zone = document.getElementById('depScreenshot');
+    zone.innerHTML = '<div style="color:var(--text-2);font-size:12px">Uploading...</div>';
+    try {
+      const data = await uploadFile(this.files[0], 'deposit-proofs');
+      zone.innerHTML = '<div style="color:var(--primary);font-size:12px;font-weight:600">✓ '+this.files[0].name+'</div><div style="font-size:11px;color:var(--text-3);margin-top:3px">Click to replace</div>';
+      zone.style.borderColor='var(--primary)'; zone.style.background='var(--primary-dim)';
+      zone.dataset.url = data.url;
+    } catch(e){
+      zone.innerHTML = '<div style="color:var(--danger);font-size:12px">Upload failed. Click to retry.</div>';
+      zone.dataset.url = '';
+    }
+  };
+  input.click();
+}
 async function submitDeposit() {
   const method  = (document.getElementById('fundMethod') || {}).value || '';
   const amount  = (document.getElementById('fundAmount') || {}).value || '';
   const txHash  = ((document.getElementById('fundTxHash') || {}).value || '').trim();
+  const screenshot = (document.getElementById('depScreenshot') || {}).dataset?.url || '';
   const errEl   = document.getElementById('fundErr');
   const btn     = document.getElementById('fundBtn');
   if (errEl) errEl.style.display = 'none';
@@ -2521,7 +2570,9 @@ async function submitDeposit() {
   }
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
   try {
-    const r = await apiFetch('/deposits', { method: 'POST', body: JSON.stringify({ method, amount: Number(amount), txHash }) });
+    const body = { method, amount: Number(amount), txHash };
+    if (screenshot) body.screenshotUrl = screenshot;
+    const r = await apiFetch('/deposits', { method: 'POST', body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) { if (errEl) { errEl.textContent = d.error || 'Submission failed.'; errEl.style.display = 'block'; } return; }
     toast('Deposit submitted! Pending admin approval.');
@@ -2705,10 +2756,20 @@ init();
 /* ─── Support Chat ──────────────────────────────────────── */
 let _chatOpen = false;
 let _chatMsgs = [];
+let _chatGreetingSent = false;
 function toggleChat() {
   _chatOpen = !_chatOpen;
   document.getElementById('chatPanel').style.display = _chatOpen ? 'flex' : 'none';
-  if (_chatOpen) loadChatMessages();
+  if (_chatOpen) { loadChatMessages(); scheduleGreeting(); }
+}
+function scheduleGreeting() {
+  if (_chatGreetingSent || _chatMsgs.length > 0) return;
+  setTimeout(function(){
+    if (_chatGreetingSent || _chatMsgs.length > 0) return;
+    _chatGreetingSent = true;
+    _chatMsgs.push({ sender:'admin', message:'Welcome to Harbor Finance! 👋 How can we help you today?', created_at:new Date().toISOString() });
+    renderChat();
+  }, 10000);
 }
 async function loadChatMessages() {
   try {
@@ -2716,6 +2777,7 @@ async function loadChatMessages() {
     if (!r.ok) return;
     const d = await r.json();
     _chatMsgs = d.messages || [];
+    if (_chatMsgs.length > 0) _chatGreetingSent = true;
     renderChat();
     const badge = document.getElementById('chatBadge');
     if (badge) badge.style.display = 'none';
@@ -2731,7 +2793,14 @@ function renderChat() {
   body.innerHTML = _chatMsgs.map(m => {
     const t = new Date(m.created_at);
     const ts = t.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
-    return '<div class="chat-msg ' + m.sender + '">' + m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<span class="chat-time">' + ts + '</span></div>';
+    let content = m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (m.file_url) {
+      const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(m.file_url);
+      content += isImg
+        ? '<div style="margin-top:6px"><img src="'+m.file_url+'" style="max-width:180px;border-radius:8px;cursor:pointer" onclick="window.open(\''+m.file_url+'\')"></div>'
+        : '<div style="margin-top:6px"><a href="'+m.file_url+'" target="_blank" style="color:inherit;text-decoration:underline;font-size:11px">📎 '+(m.file_name||'Attachment')+'</a></div>';
+    }
+    return '<div class="chat-msg ' + m.sender + '">' + content + '<span class="chat-time">' + ts + '</span></div>';
   }).join('');
   body.scrollTop = body.scrollHeight;
 }
@@ -2746,6 +2815,21 @@ async function sendChatMsg() {
   try {
     await apiFetch('/support/messages', { method:'POST', body:JSON.stringify({ message:msg }) });
   } catch(e) {}
+}
+async function chatAttach() {
+  const input = document.createElement('input');
+  input.type='file'; input.accept='image/*,.pdf,.doc,.docx';
+  input.onchange = async function(){
+    if(!this.files[0]) return;
+    toast('Uploading file...');
+    try {
+      const data = await uploadFile(this.files[0], 'support-files');
+      _chatMsgs.push({ sender:'user', message:'📎 Sent a file', file_url:data.url, file_name:data.fileName, created_at:new Date().toISOString() });
+      renderChat();
+      await apiFetch('/support/messages', { method:'POST', body:JSON.stringify({ message:'📎 Sent a file', fileUrl:data.url, fileName:data.fileName }) });
+    } catch(e){ toast(e.message||'Upload failed'); }
+  };
+  input.click();
 }
 async function checkUnread() {
   try {
@@ -2793,6 +2877,9 @@ setTimeout(checkUnread, 5000);
     <div class="chat-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;display:block;color:var(--text-3)"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Welcome to Harbor Finance Support!<br>How can we help you today?</div>
   </div>
   <div class="chat-input-wrap">
+    <button onclick="chatAttach()" style="background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;display:flex;flex-shrink:0" title="Attach file">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+    </button>
     <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
     <button class="chat-send" onclick="sendChatMsg()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>

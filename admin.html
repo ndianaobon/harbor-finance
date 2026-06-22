@@ -721,7 +721,7 @@ async users(){
   </div>
   <div class="tbl-overflow"><table id="usersTable">
     <thead><tr><th>User</th><th>Country</th><th>Balance</th><th>KYC</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-ghost btn-xs" onclick="editBalance(\''+u.id+'\',\''+ns+'\','+u.balance+')">Balance</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
+    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-ghost btn-xs" onclick="editBalance(\''+u.id+'\',\''+ns+'\','+u.balance+')">Balance</button><button class="btn btn-primary btn-xs" onclick="adminDeposit(\''+u.id+'\',\''+ns+'\')">Add Funds</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
   </table></div>
 </div>`;
 },
@@ -963,6 +963,24 @@ async function saveBalance(id,name){
   if(bal===''||isNaN(Number(bal))){toast('Enter a valid balance','error');return;}
   const r=await api('/admin/users/'+id,{method:'PATCH',body:JSON.stringify({balance:Number(bal),note})});
   if(r.ok){closeModal();toast('Balance updated for '+name,'success');go('users');}
+  else{const e=await r.json();toast(e.error||'Failed','error');}
+}
+function adminDeposit(id,name){
+  openModal('Add Funds — '+name,
+    '<div class="form-group"><label>Amount ($)</label><input type="number" id="depAmt" placeholder="e.g. 100" min="0" step="0.01"></div>'+
+    '<div class="form-group" style="margin-top:14px"><label>Method</label><select id="depMethod"><option>Admin Credit</option><option>Bank Transfer</option><option>Bitcoin</option><option>Bonus</option></select></div>'+
+    '<div class="form-group" style="margin-top:14px"><label>Note</label><textarea id="depNote" placeholder="Reason for deposit..."></textarea></div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
+    '<button class="btn btn-primary" onclick="doAdminDeposit(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')">Deposit Funds</button>'
+  );
+}
+async function doAdminDeposit(id,name){
+  const amount=Number(document.getElementById('depAmt').value);
+  const method=document.getElementById('depMethod').value;
+  const note=document.getElementById('depNote').value;
+  if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
+  const r=await api('/admin/deposit',{method:'POST',body:JSON.stringify({userId:id,amount,method,note})});
+  if(r.ok){closeModal();toast('$'+amount.toFixed(2)+' deposited to '+name,'success');go('users');}
   else{const e=await r.json();toast(e.error||'Failed','error');}
 }
 function userAction(status,id,name){

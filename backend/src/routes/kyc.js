@@ -6,9 +6,9 @@ const router = express.Router();
 
 // POST /api/kyc/submit — user submits KYC documents (URLs from Supabase Storage)
 router.post('/submit', requireAuth, async (req, res) => {
-  const { documentType, frontUrl, backUrl, selfieUrl, poaUrl } = req.body;
-  if (!documentType || !frontUrl || !selfieUrl) {
-    return res.status(400).json({ error: 'Document type, front image, and selfie are required' });
+  const { documentType, frontUrl, backUrl, selfieUrl, poaUrl, dob, addressLine, city, state, country } = req.body;
+  if (!documentType || !frontUrl) {
+    return res.status(400).json({ error: 'Document type and front image are required' });
   }
 
   // Check existing submission
@@ -26,15 +26,22 @@ router.post('/submit', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'A KYC submission is already under review' });
   }
 
-  const { data, error } = await supabase.from('kyc_submissions').insert({
+  const insertData = {
     user_id:       req.user.id,
     document_type: documentType,
     front_url:     frontUrl,
     back_url:      backUrl || null,
-    selfie_url:    selfieUrl,
+    selfie_url:    selfieUrl || frontUrl,
     poa_url:       poaUrl || null,
     status:        'pending',
-  }).select().single();
+  };
+  if (dob) insertData.dob = dob;
+  if (addressLine) insertData.address_line = addressLine;
+  if (city) insertData.city = city;
+  if (state) insertData.state = state;
+  if (country) insertData.country = country;
+
+  const { data, error } = await supabase.from('kyc_submissions').insert(insertData).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to submit KYC' });
 

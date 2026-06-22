@@ -88,6 +88,37 @@ router.patch('/users/:id', async (req, res) => {
   res.json({ message: 'User updated successfully' });
 });
 
+// POST /api/admin/deposit — admin deposits funds to a user
+router.post('/deposit', async (req, res) => {
+  const { userId, amount, method, note } = req.body;
+  if (!userId || !amount || Number(amount) <= 0) {
+    return res.status(400).json({ error: 'userId and valid amount are required' });
+  }
+
+  const { data: user } = await supabase.from('users').select('balance').eq('id', userId).single();
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const newBal = Number(user.balance) + Number(amount);
+  await supabase.from('users').update({ balance: newBal }).eq('id', userId);
+
+  await supabase.from('deposits').insert({
+    user_id: userId,
+    method: method || 'Admin Credit',
+    amount: Number(amount),
+    tx_hash: null,
+    notes: note || 'Deposited by admin',
+    status: 'approved',
+  });
+
+  supabase.from('activity_logs').insert({
+    user_id: req.user.id,
+    action: 'admin_deposit',
+    meta: { target_user: userId, amount: Number(amount), note },
+  }).then(null, () => {});
+
+  res.json({ message: 'Funds deposited successfully', newBalance: newBal });
+});
+
 // GET /api/admin/wallets — deposit wallet addresses
 router.get('/wallets', async (req, res) => {
   const { data, error } = await supabase
