@@ -721,7 +721,7 @@ async users(){
   </div>
   <div class="tbl-overflow"><table id="usersTable">
     <thead><tr><th>User</th><th>Country</th><th>Balance</th><th>KYC</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-ghost btn-xs" onclick="editBalance(\''+u.id+'\',\''+ns+'\','+u.balance+')">Balance</button><button class="btn btn-primary btn-xs" onclick="adminDeposit(\''+u.id+'\',\''+ns+'\')">Add Funds</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
+    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-ghost btn-xs" onclick="editBalance(\''+u.id+'\',\''+ns+'\','+u.balance+')">Balance</button><button class="btn btn-primary btn-xs" onclick="adminDeposit(\''+u.id+'\',\''+ns+'\')">Add Funds</button><button class="btn btn-ghost btn-xs" onclick="adminAddProfit(\''+u.id+'\',\''+ns+'\')">Add Profit</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
   </table></div>
 </div>`;
 },
@@ -983,6 +983,22 @@ async function doAdminDeposit(id,name){
   if(r.ok){closeModal();toast('$'+amount.toFixed(2)+' deposited to '+name,'success');go('users');}
   else{const e=await r.json();toast(e.error||'Failed','error');}
 }
+function adminAddProfit(id,name){
+  openModal('Add Profit — '+name,
+    '<div class="form-group"><label>Profit Amount ($)</label><input type="number" id="profitAmt" placeholder="e.g. 50" min="0" step="0.01"></div>'+
+    '<div class="form-group" style="margin-top:14px"><label>Note</label><textarea id="profitNote" placeholder="e.g. ROI payout, bonus..."></textarea></div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
+    '<button class="btn btn-primary" onclick="doAddProfit(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')">Add Profit</button>'
+  );
+}
+async function doAddProfit(id,name){
+  const amount=Number(document.getElementById('profitAmt').value);
+  const note=document.getElementById('profitNote').value;
+  if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
+  const r=await api('/admin/add-profit',{method:'POST',body:JSON.stringify({userId:id,amount,note})});
+  if(r.ok){closeModal();toast('$'+amount.toFixed(2)+' profit added to '+name,'success');go('users');}
+  else{const e=await r.json();toast(e.error||'Failed','error');}
+}
 function userAction(status,id,name){
   const labels={active:'Activate',suspended:'Suspend',banned:'Ban'};
   const cls={active:'btn-primary',suspended:'btn-warn',banned:'btn-danger'};
@@ -1200,7 +1216,29 @@ function toggleTheme(){
     const btn=document.getElementById('themeBtn');
     if(btn) btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
   }
+  // Check if session is still valid (20 min timeout)
+  const lastActive = Number(localStorage.getItem('hbr_admin_active') || 0);
+  if (adminToken && adminUser && lastActive && Date.now() - lastActive > 20 * 60 * 1000) {
+    localStorage.removeItem('hbr_admin_token');
+    localStorage.removeItem('hbr_admin_user');
+    localStorage.removeItem('hbr_admin_active');
+    adminToken = null; adminUser = null;
+  }
   if(adminToken&&adminUser)showShell();
+  // Admin session activity tracking
+  let _adminIdle;
+  function resetAdminIdle(){
+    clearTimeout(_adminIdle);
+    localStorage.setItem('hbr_admin_active', Date.now().toString());
+    _adminIdle = setTimeout(function(){
+      doLogout();
+      alert('Session expired. Please log in again.');
+    }, 20 * 60 * 1000);
+  }
+  ['mousemove','keydown','touchstart','click'].forEach(function(e){
+    document.addEventListener(e, resetAdminIdle, {passive:true});
+  });
+  if(adminToken) resetAdminIdle();
 })();
 </script>
 </body>

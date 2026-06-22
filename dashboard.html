@@ -2170,9 +2170,9 @@ async function go(key) {
     let pageHtml;
     if (isMobile() && key === 'dashboard') {
       pageHtml = await renderMobDashboard();
-    } else if (isMobile() && key === 'profile') {
+    } else if (key === 'profile' && isMobile()) {
       pageHtml = await renderMobProfile();
-    } else if (key === 'profile') {
+    } else if (key === 'profile' || key === 'account') {
       pageHtml = await PAGES['settings']();
     } else {
       pageHtml = await PAGES[key]();
@@ -2271,7 +2271,7 @@ async function renderMobDashboard() {
       const stsClass = t.status==='approved'?'processed':t.status==='pending'?'pending':'rejected';
       const stsLabel = t.status==='approved'?'Processed':t.status==='pending'?'Pending':'Rejected';
       const isDeposit = t.type==='deposit';
-      return '<div class="mob-txn-row"><div class="mob-txn-left"><div class="mob-txn-amount'+(isDeposit?'':' out')+'">'+(isDeposit?'+':'-')+fmt(t.amount)+'</div><div class="mob-txn-meta"><span>Payment Method &nbsp;&nbsp;&nbsp;'+(t.method||'Express Deposit')+'</span><span>Date &nbsp;&nbsp;&nbsp;'+fmtDate(t.date)+'</span></div></div><div class="mob-txn-status '+stsClass+'">'+stsLabel+'</div></div>';
+      return '<div class="mob-txn-row" data-type="'+t.type+'"><div class="mob-txn-left"><div class="mob-txn-amount'+(isDeposit?'':' out')+'">'+(isDeposit?'+':'-')+fmt(t.amount)+'</div><div class="mob-txn-meta"><span>Payment Method &nbsp;&nbsp;&nbsp;'+(t.method||'Express Deposit')+'</span><span>Date &nbsp;&nbsp;&nbsp;'+fmtDate(t.date)+'</span></div></div><div class="mob-txn-status '+stsClass+'">'+stsLabel+'</div></div>';
     }).join('');
   } catch(e) {}
 
@@ -2396,6 +2396,12 @@ function qaAction(page) {
 function mobTxnTab(tab, type) {
   document.querySelectorAll('.mob-txn-tab').forEach(t => t.classList.remove('active'));
   tab.classList.add('active');
+  const rows = document.querySelectorAll('#mobTxnContent .mob-txn-row');
+  rows.forEach(r => {
+    if (type === 'dep') r.style.display = r.dataset.type === 'deposit' ? '' : 'none';
+    else if (type === 'wd') r.style.display = r.dataset.type === 'withdrawal' ? '' : 'none';
+    else r.style.display = '';
+  });
 }
 
 function mobMarketScroll(dir) {
@@ -2658,11 +2664,12 @@ function doLogout() {
   window.location.replace('auth.html');
 }
 
-/* ─── Prevent back button to auth page ───────────────────── */
-history.replaceState(null, '', window.location.href);
-window.addEventListener('popstate', function() {
+/* ─── Prevent back button to auth page (Android/iOS) ─────── */
+history.pushState(null, '', window.location.href);
+history.pushState(null, '', window.location.href);
+window.addEventListener('popstate', function(e) {
   history.pushState(null, '', window.location.href);
-  go('dashboard');
+  if (typeof go === 'function') go('dashboard');
 });
 
 /* ─── Session Timeout (20 min inactivity) ───────────────── */
