@@ -109,7 +109,7 @@ router.put('/wallets', async (req, res) => {
     return res.status(400).json({ error: 'Wallets object is required' });
   }
 
-  const allowed = ['btc', 'eth', 'usdt'];
+  const allowed = ['btc', 'eth', 'usdt_trc20', 'usdt_erc20', 'usdt_bep20'];
   const entries = Object.entries(wallets).filter(([k]) => allowed.includes(k.toLowerCase()));
   if (!entries.length) return res.status(400).json({ error: 'No valid wallet addresses provided' });
 

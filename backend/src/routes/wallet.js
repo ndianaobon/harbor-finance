@@ -54,7 +54,8 @@ router.get('/deposit-address/:currency', requireAuth, async (req, res) => {
     .eq('key', 'wallet_' + currency.toLowerCase())
     .single();
   if (!data) return res.status(400).json({ error: 'Unsupported currency' });
-  res.json({ currency, address: data.value, network: currency === 'USDT' ? 'TRC-20' : currency });
+  const networks = { USDT_TRC20:'TRC-20', USDT_ERC20:'ERC-20', USDT_BEP20:'BEP-20', BTC:'Bitcoin', ETH:'Ethereum' };
+  res.json({ currency, address: data.value, network: networks[currency] || currency });
 });
 
 module.exports = router;

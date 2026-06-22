@@ -377,8 +377,14 @@ router.post('/verify-2fa', async (req, res) => {
 
   if (!valid) return res.status(400).json({ error: 'Invalid 2FA code' });
 
+  const { data: userData } = await supabase
+    .from('users')
+    .select('id, email, username, first_name, last_name, role, status, balance, kyc_status, referral_code, referred_by, phone, country, email_verified, tfa_enabled, created_at, signal_strength, account_status_text')
+    .eq('id', userId)
+    .single();
+
   const token = signToken(userId);
-  res.json({ token, message: '2FA verified' });
+  res.json({ token, user: userData, message: '2FA verified' });
 });
 
 // ── POST /api/auth/setup-2fa ──────────────────────────────────────────────────

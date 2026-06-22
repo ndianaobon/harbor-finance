@@ -479,10 +479,12 @@ select.fi{appearance:none}
 .mob-tb-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-2);transition:transform .2s}
 .mob-tb-avatar{
   width:32px;height:32px;border-radius:50%;
-  background:var(--primary);color:#000;
+  background:var(--primary);color:#fff;
   display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:800;
 }
+html.light .mob-tb-toggle{background:var(--primary);border-color:var(--primary)}
+html.light .mob-tb-toggle::after{transform:translateX(18px);background:#fff}
 
 /* ── Mobile dashboard cards ── */
 .mob-welcome{
@@ -928,7 +930,7 @@ select.fi{appearance:none}
     <div class="tb-icon-btn" title="Toggle theme" onclick="toggleTheme()" id="mobThemeToggle">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
     </div>
-    <div class="mob-tb-toggle"></div>
+    <div class="mob-tb-toggle" onclick="toggleTheme()"></div>
     <div class="mob-tb-avatar" id="mobTbAv">MF</div>
   </div>
 </header>
@@ -1042,7 +1044,7 @@ const API = (window.location.hostname === 'localhost' || window.location.hostnam
   : 'https://harbor-finance-production.up.railway.app/api';
 
 let _user = null;
-let _depositAddrs = { BTC:'', ETH:'', USDT:'' };
+let _depositAddrs = { BTC:'', ETH:'', USDT_TRC20:'', USDT_ERC20:'', USDT_BEP20:'' };
 
 async function apiFetch(path, opts = {}) {
   const r = await fetch(API + path, {
@@ -1051,6 +1053,19 @@ async function apiFetch(path, opts = {}) {
   });
   if (r.status === 401) { localStorage.removeItem('hbr_token'); window.location.replace('auth.html'); }
   return r;
+}
+
+async function uploadFile(file, bucket) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('bucket', bucket);
+  const r = await fetch(API + '/upload', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + _token },
+    body: fd,
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error || 'Upload failed'); }
+  return r.json();
 }
 
 function fmt(n) {
@@ -1157,7 +1172,7 @@ const PAGES = {
         <div><div class="card-title">Fund Your Account</div><div class="card-sub">Choose a payment method and deposit amount</div></div>
       </div>
       <div class="fg"><label class="flbl">Payment Method</label>
-        <select class="fi" id="fundMethod" onchange="updateFundAddr()"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT">USDT TRC-20</option><option value="USDT">USDT ERC-20</option><option value="BANK">Bank Transfer</option></select>
+        <select class="fi" id="fundMethod" onchange="updateFundAddr()"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT TRC-20</option><option value="USDT_ERC20">USDT ERC-20</option><option value="USDT_BEP20">USDT BEP-20</option><option value="BANK">Bank Transfer</option></select>
       </div>
       <div class="fg"><label class="flbl">Amount (USD)</label>
         <input type="number" class="fi" id="fundAmount" placeholder="e.g. 500">
@@ -1220,7 +1235,7 @@ const PAGES = {
         <div><div class="card-title">Withdraw Funds</div><div class="card-sub" id="wdAvailSub">Available: <strong style="color:var(--primary)">$0.00</strong></div></div>
       </div>
       <div class="fg"><label class="flbl">Withdrawal Method</label>
-        <select class="fi" id="wdMethod"><option>Bitcoin (BTC)</option><option>Ethereum (ETH)</option><option>USDT TRC-20</option><option>Bank Transfer</option></select>
+        <select class="fi" id="wdMethod"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT TRC-20</option><option value="USDT_ERC20">USDT ERC-20</option><option value="USDT_BEP20">USDT BEP-20</option><option value="BANK">Bank Transfer</option></select>
       </div>
       <div class="fg"><label class="flbl">Wallet Address / Bank Details</label><input type="text" class="fi" id="wdAddress" placeholder="Your wallet address or bank account number"></div>
       <div class="fg"><label class="flbl">Amount (USD)</label>
@@ -1259,7 +1274,9 @@ const PAGES = {
           <select class="fi" id="depCoin" onchange="updateAddr()">
             <option value="BTC">Bitcoin (BTC)</option>
             <option value="ETH">Ethereum (ETH)</option>
-            <option value="USDT">USDT TRC-20</option>
+            <option value="USDT_TRC20">USDT TRC-20</option>
+            <option value="USDT_ERC20">USDT ERC-20</option>
+            <option value="USDT_BEP20">USDT BEP-20</option>
           </select>
         </div>
         <!-- QR -->
@@ -1283,7 +1300,7 @@ const PAGES = {
           <div style="font-size:11px;color:var(--text-3);margin-top:8px">Scan QR to copy address</div>
         </div>
         <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px;display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div id="walletAddr" style="font-size:11px;font-family:monospace;color:var(--text-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_depositAddrs.BTC||'Loading...'}</div>
+          <div id="walletAddr" style="font-size:11px;font-family:monospace;color:var(--text-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_depositAddrs.BTC||_depositAddrs.USDT_TRC20||'Loading...'}</div>
           <button class="btn btn-o btn-sm" onclick="copyAddr(this)">Copy</button>
         </div>
         <div style="font-size:11px;color:var(--text-3);padding:8px;background:rgba(227,179,65,.06);border:1px solid rgba(227,179,65,.2);border-radius:var(--r)">
@@ -2582,6 +2599,7 @@ function doLogout() {
 history.replaceState(null, '', window.location.href);
 window.addEventListener('popstate', function() {
   history.pushState(null, '', window.location.href);
+  go('dashboard');
 });
 
 /* ─── Session Timeout (20 min inactivity) ───────────────── */

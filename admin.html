@@ -841,7 +841,7 @@ notifications(){
 },
 
 async walletAddresses(){
-  let wallets = { BTC:'', ETH:'', USDT:'' };
+  let wallets = { BTC:'', ETH:'', USDT_TRC20:'', USDT_ERC20:'', USDT_BEP20:'' };
   try {
     const r = await api('/admin/wallets');
     if(r.ok){ const d = await r.json(); wallets = { ...wallets, ...d.wallets }; }
@@ -862,12 +862,22 @@ async walletAddresses(){
   <div class="form-group" style="margin-top:16px">
     <label>Ethereum (ETH)</label>
     <input type="text" id="waEth" value="${wallets.ETH||''}" placeholder="e.g. 0x..." style="font-family:monospace;font-size:13px">
-    <div style="font-size:11px;color:var(--text-3);margin-top:4px">Network: Ethereum Mainnet (ERC-20)</div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:4px">Network: Ethereum Mainnet</div>
   </div>
   <div class="form-group" style="margin-top:16px">
     <label>USDT (TRC-20)</label>
-    <input type="text" id="waUsdt" value="${wallets.USDT||''}" placeholder="e.g. T..." style="font-family:monospace;font-size:13px">
+    <input type="text" id="waTrc20" value="${wallets.USDT_TRC20||''}" placeholder="e.g. T..." style="font-family:monospace;font-size:13px">
     <div style="font-size:11px;color:var(--text-3);margin-top:4px">Network: Tron (TRC-20)</div>
+  </div>
+  <div class="form-group" style="margin-top:16px">
+    <label>USDT (ERC-20)</label>
+    <input type="text" id="waErc20" value="${wallets.USDT_ERC20||''}" placeholder="e.g. 0x..." style="font-family:monospace;font-size:13px">
+    <div style="font-size:11px;color:var(--text-3);margin-top:4px">Network: Ethereum (ERC-20)</div>
+  </div>
+  <div class="form-group" style="margin-top:16px">
+    <label>USDT (BEP-20)</label>
+    <input type="text" id="waBep20" value="${wallets.USDT_BEP20||''}" placeholder="e.g. 0x..." style="font-family:monospace;font-size:13px">
+    <div style="font-size:11px;color:var(--text-3);margin-top:4px">Network: BNB Smart Chain (BEP-20)</div>
   </div>
   <div style="margin-top:24px;display:flex;gap:10px;align-items:center">
     <button class="btn btn-primary" id="waSaveBtn" onclick="saveWalletAddresses()">Save Wallet Addresses</button>
@@ -1108,19 +1118,23 @@ async function sendAdminReply(){
   }catch(e){toast('Network error','error');}
 }
 async function saveWalletAddresses(){
-  const btc  = (document.getElementById('waBtc')  || {}).value || '';
-  const eth  = (document.getElementById('waEth')  || {}).value || '';
-  const usdt = (document.getElementById('waUsdt') || {}).value || '';
+  const btc    = (document.getElementById('waBtc')    || {}).value || '';
+  const eth    = (document.getElementById('waEth')    || {}).value || '';
+  const trc20  = (document.getElementById('waTrc20')  || {}).value || '';
+  const erc20  = (document.getElementById('waErc20')  || {}).value || '';
+  const bep20  = (document.getElementById('waBep20')  || {}).value || '';
   const btn  = document.getElementById('waSaveBtn');
   const stat = document.getElementById('waSaveStatus');
-  if(!btc.trim() && !eth.trim() && !usdt.trim()){ toast('Enter at least one wallet address','error'); return; }
+  if(!btc.trim()&&!eth.trim()&&!trc20.trim()&&!erc20.trim()&&!bep20.trim()){ toast('Enter at least one wallet address','error'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
   if(stat) stat.textContent='';
   try {
     const wallets = {};
-    if(btc.trim())  wallets.BTC  = btc.trim();
-    if(eth.trim())  wallets.ETH  = eth.trim();
-    if(usdt.trim()) wallets.USDT = usdt.trim();
+    if(btc.trim())   wallets.BTC         = btc.trim();
+    if(eth.trim())   wallets.ETH         = eth.trim();
+    if(trc20.trim()) wallets.USDT_TRC20  = trc20.trim();
+    if(erc20.trim()) wallets.USDT_ERC20  = erc20.trim();
+    if(bep20.trim()) wallets.USDT_BEP20  = bep20.trim();
     const r = await api('/admin/wallets',{method:'PUT',body:JSON.stringify({wallets})});
     if(r.ok){
       toast('Wallet addresses updated!','success');

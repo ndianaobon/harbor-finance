@@ -160,4 +160,4 @@ async function sendPasswordResetEmail(to, resetUrl, firstName = '') {
   });
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+module.exports = { sendMail, sendVerificationEmail, sendPasswordResetEmail };
