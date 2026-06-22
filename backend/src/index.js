@@ -75,6 +75,23 @@ app.get('/health/email', async (_req, res) => {
   res.json({ status: 'error', provider: 'none', message: 'RESEND_API_KEY is not set. Add it to Railway environment variables.' });
 });
 
+app.get('/health/email-test', async (_req, res) => {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return res.json({ error: 'RESEND_API_KEY not set' });
+  const from = process.env.EMAIL_FROM || 'Harbor Finance <onboarding@resend.dev>';
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: ['ndianaobongsunday3@gmail.com'], subject: 'Harbor Finance Test', html: '<h2>Email is working!</h2><p>If you see this, Resend is configured correctly.</p>' }),
+    });
+    const data = await r.json();
+    res.json({ status: r.ok ? 'sent' : 'failed', from, response: data });
+  } catch (err) {
+    res.json({ status: 'error', from, message: err.message });
+  }
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRoutes);
 app.use('/api/admin',         adminRoutes);
