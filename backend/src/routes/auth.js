@@ -393,16 +393,33 @@ router.post('/setup-2fa', requireAuth, async (req, res) => {
 
   if (method === 'app') {
     const secret = speakeasy.generateSecret({ name: `Harbor Finance (${req.user.email})`, length: 20 });
-    // Temporarily store secret until confirmed
     await supabase.from('users').update({ tfa_secret_pending: secret.base32 }).eq('id', req.user.id);
+    const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(secret.otpauth_url);
     return res.json({
       secret:     secret.base32,
       otpauthUrl: secret.otpauth_url,
+      qrCodeUrl,
     });
   }
 
-  // SMS method — send OTP to phone (stub: same email flow)
-  res.json({ message: 'SMS 2FA: wire up Twilio in production' });
+  // SMS method — send OTP via email (Railway blocks SMTP/Twilio)
+  const { sendMail } = require('../lib/mailer');
+  const otp = generateOTP();
+  const expires = new Date(Date.now() + 10 * 60 * 1000);
+  await supabase.from('email_otp').insert({
+    user_id: req.user.id, email: req.user.email, code: otp,
+    type: '2fa', expires_at: expires.toISOString(), used: false,
+  });
+  await supabase.from('users').update({ tfa_secret_pending: 'sms' }).eq('id', req.user.id);
+  try {
+    await sendMail({
+      to: req.user.email,
+      subject: `${otp} is your Harbor Finance 2FA code`,
+      html: `<div style="font-family:Arial;padding:20px;background:#0d1117;color:#e6edf3;border-radius:12px"><h2 style="color:#2ea043">Your 2FA verification code</h2><div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#2ea043;margin:20px 0">${otp}</div><p style="color:#8b949e">This code expires in 10 minutes.</p></div>`,
+      text: `Your Harbor Finance 2FA code is: ${otp}`,
+    });
+  } catch(e) { return res.status(500).json({ error: 'Failed to send verification code' }); }
+  res.json({ message: 'Verification code sent to your email', method: 'sms' });
 });
 
 // ── POST /api/auth/confirm-2fa ────────────────────────────────────────────────
@@ -416,19 +433,27 @@ router.post('/confirm-2fa', requireAuth, async (req, res) => {
 
   if (!user?.tfa_secret_pending) return res.status(400).json({ error: 'No pending 2FA setup found' });
 
-  const valid = speakeasy.totp.verify({
-    secret:   user.tfa_secret_pending,
-    encoding: 'base32',
-    token:    String(code).trim(),
-    window:   1,
-  });
+  let valid = false;
+  const isSms = user.tfa_secret_pending === 'sms';
+
+  if (isSms) {
+    const { data: otp } = await supabase.from('email_otp').select('*')
+      .eq('user_id', req.user.id).eq('code', String(code).trim()).eq('type', '2fa').eq('used', false)
+      .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).maybeSingle();
+    if (otp) { valid = true; await supabase.from('email_otp').update({ used: true }).eq('id', otp.id); }
+  } else {
+    valid = speakeasy.totp.verify({
+      secret: user.tfa_secret_pending, encoding: 'base32',
+      token: String(code).trim(), window: 1,
+    });
+  }
 
   if (!valid) return res.status(400).json({ error: 'Invalid code. Try again.' });
 
   await supabase.from('users').update({
     tfa_enabled:        true,
-    tfa_method:         'app',
-    tfa_secret:         user.tfa_secret_pending,
+    tfa_method:         isSms ? 'sms' : 'app',
+    tfa_secret:         isSms ? null : user.tfa_secret_pending,
     tfa_secret_pending: null,
   }).eq('id', req.user.id);
 

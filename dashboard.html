@@ -1943,19 +1943,10 @@ const PAGES = {
           <div id="tfaSetupArea" style="display:none;margin-top:12px">
             <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:12px">
               <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Scan with your authenticator app:</div>
-              <div style="width:110px;height:110px;margin:0 auto 8px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:6px">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
-                  <rect width="100" height="100" fill="white"/>
-                  <rect x="10" y="10" width="30" height="30" fill="black"/><rect x="15" y="15" width="20" height="20" fill="white"/><rect x="20" y="20" width="10" height="10" fill="black"/>
-                  <rect x="60" y="10" width="30" height="30" fill="black"/><rect x="65" y="15" width="20" height="20" fill="white"/><rect x="70" y="20" width="10" height="10" fill="black"/>
-                  <rect x="10" y="60" width="30" height="30" fill="black"/><rect x="15" y="65" width="20" height="20" fill="white"/><rect x="20" y="70" width="10" height="10" fill="black"/>
-                  <rect x="45" y="10" width="10" height="5" fill="black"/><rect x="45" y="45" width="10" height="10" fill="black"/>
-                  <rect x="60" y="50" width="5" height="10" fill="black"/><rect x="70" y="45" width="15" height="5" fill="black"/>
-                  <rect x="45" y="60" width="5" height="15" fill="black"/><rect x="55" y="65" width="15" height="5" fill="black"/>
-                  <rect x="75" y="65" width="15" height="5" fill="black"/><rect x="75" y="75" width="5" height="15" fill="black"/>
-                </svg>
+              <div id="tfaQrArea" style="width:110px;height:110px;margin:0 auto 8px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:6px">
+                <div style="color:var(--text-3);font-size:11px">Loading...</div>
               </div>
-              <div style="font-family:monospace;font-size:11px;color:var(--text-3);background:var(--surface-3);padding:5px 10px;border-radius:4px;display:inline-block">HBRF-X7KL-29QM-4TPN</div>
+              <div id="tfaSecret" style="font-family:monospace;font-size:11px;color:var(--text-3);background:var(--surface-3);padding:5px 10px;border-radius:4px;display:inline-block"></div>
             </div>
             <div class="fg"><label class="flbl">Enter 6-digit code to confirm</label>
               <input type="text" class="fi" id="tfa2Code" placeholder="000000" maxlength="6" inputmode="numeric">
@@ -2440,39 +2431,64 @@ function copyRef(btn) {
 }
 
 /* ─── 2FA helpers ───────────────────────────────────────── */
+let _2faMethod = 'app';
 function show2FAOptions(){
   const opts = document.getElementById('tfaOptions');
   if(opts){ opts.style.display='flex'; opts.style.flexDirection='column'; opts.style.gap='8px'; }
   const btn = document.getElementById('tfaEnableBtn');
   if(btn) btn.style.display='none';
 }
-function setup2FA(method){
+async function setup2FA(method){
+  _2faMethod = method;
   const opts = document.getElementById('tfaOptions');
   if(opts) opts.style.display='none';
   const area = document.getElementById('tfaSetupArea');
   if(area) area.style.display='block';
+  try {
+    const r = await apiFetch('/auth/setup-2fa', { method:'POST', body:JSON.stringify({ method }) });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error||'Failed to setup 2FA'); cancel2FA(); return; }
+    if(method === 'app' && d.qrCodeUrl) {
+      const qrEl = document.getElementById('tfaQrArea');
+      if(qrEl) qrEl.innerHTML = '<img src="'+d.qrCodeUrl+'" width="110" height="110" style="border-radius:8px" alt="QR Code">';
+      const secretEl = document.getElementById('tfaSecret');
+      if(secretEl) secretEl.textContent = d.secret || '';
+    } else {
+      const qrEl = document.getElementById('tfaQrArea');
+      if(qrEl) qrEl.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-2)">A verification code has been sent to your email.</div>';
+      const secretEl = document.getElementById('tfaSecret');
+      if(secretEl) secretEl.textContent = '';
+    }
+  } catch(e){ toast('Network error'); cancel2FA(); }
 }
-function confirm2FA(){
+async function confirm2FA(){
   const code = (document.getElementById('tfa2Code')||{}).value||'';
-  if(code.length < 6){ toast('Enter the 6-digit code from your app'); return; }
-  if(code === '123456'){
+  if(code.length < 6){ toast('Enter the 6-digit code'); return; }
+  try {
+    const r = await apiFetch('/auth/confirm-2fa', { method:'POST', body:JSON.stringify({ code }) });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error||'Invalid code'); return; }
     const area = document.getElementById('tfaSetupArea');
     if(area) area.style.display='none';
     const badge = document.getElementById('tfaBadge');
     if(badge){ badge.textContent='Enabled'; badge.className='badge badge-g'; }
     const btn = document.getElementById('tfaEnableBtn');
     if(btn){ btn.textContent='Disable 2FA'; btn.style.display='block'; btn.onclick=disable2FA; }
+    if(_user) _user.tfa_enabled = true;
     toast('2FA enabled successfully!');
-  } else {
-    toast('Incorrect code. Demo code is 123456');
-  }
+  } catch(e){ toast('Network error'); }
 }
-function disable2FA(){
-  const badge = document.getElementById('tfaBadge');
-  if(badge){ badge.textContent='Disabled'; badge.className='badge badge-r'; }
-  const btn = document.getElementById('tfaEnableBtn');
-  if(btn){ btn.textContent='Enable 2FA'; btn.onclick=show2FAOptions; }
-  toast('2FA has been disabled');
+async function disable2FA(){
+  try {
+    const r = await apiFetch('/auth/disable-2fa', { method:'POST' });
+    if(!r.ok){ const d=await r.json(); toast(d.error||'Failed'); return; }
+    const badge = document.getElementById('tfaBadge');
+    if(badge){ badge.textContent='Disabled'; badge.className='badge badge-r'; }
+    const btn = document.getElementById('tfaEnableBtn');
+    if(btn){ btn.textContent='Enable 2FA'; btn.style.display='block'; btn.onclick=show2FAOptions; }
+    if(_user) _user.tfa_enabled = false;
+    toast('2FA has been disabled');
+  } catch(e){ toast('Network error'); }
 }
 function cancel2FA(){
   const area = document.getElementById('tfaSetupArea');
