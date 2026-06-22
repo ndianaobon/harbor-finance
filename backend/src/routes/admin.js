@@ -147,6 +147,38 @@ router.post('/add-profit', async (req, res) => {
   res.json({ message: 'Profit added successfully', newBalance: newBal });
 });
 
+// GET /api/admin/withdrawal-settings — get WC/FSAC toggle status
+router.get('/withdrawal-settings', async (req, res) => {
+  const { data } = await supabase.from('site_settings').select('key, value').in('key', ['wc_code_enabled', 'fsac_code_enabled']);
+  const settings = {};
+  (data || []).forEach(r => { settings[r.key] = r.value === 'true'; });
+  res.json({ wcEnabled: settings.wc_code_enabled ?? true, fsacEnabled: settings.fsac_code_enabled ?? true });
+});
+
+// PUT /api/admin/withdrawal-settings — toggle WC/FSAC on/off
+router.put('/withdrawal-settings', async (req, res) => {
+  const { wcEnabled, fsacEnabled } = req.body;
+  if (wcEnabled !== undefined) await supabase.from('site_settings').upsert({ key: 'wc_code_enabled', value: String(wcEnabled), updated_at: new Date().toISOString() });
+  if (fsacEnabled !== undefined) await supabase.from('site_settings').upsert({ key: 'fsac_code_enabled', value: String(fsacEnabled), updated_at: new Date().toISOString() });
+  res.json({ message: 'Settings updated' });
+});
+
+// POST /api/admin/generate-code — generate WC or FSAC code for a user
+router.post('/generate-code', async (req, res) => {
+  const { userId, codeType } = req.body;
+  if (!userId || !['wc', 'fsac'].includes(codeType)) return res.status(400).json({ error: 'userId and codeType (wc/fsac) required' });
+  const code = codeType.toUpperCase() + '-' + require('crypto').randomBytes(4).toString('hex').toUpperCase();
+  await supabase.from('withdrawal_codes').insert({ user_id: userId, code_type: codeType, code });
+  supabase.from('activity_logs').insert({ user_id: req.user.id, action: 'generate_' + codeType + '_code', meta: { target_user: userId, code } }).then(null, () => {});
+  res.json({ code, codeType });
+});
+
+// GET /api/admin/user-codes/:userId — get codes for a user
+router.get('/user-codes/:userId', async (req, res) => {
+  const { data } = await supabase.from('withdrawal_codes').select('*').eq('user_id', req.params.userId).order('created_at', { ascending: false });
+  res.json({ codes: data || [] });
+});
+
 // GET /api/admin/wallets — deposit wallet addresses
 router.get('/wallets', async (req, res) => {
   const { data, error } = await supabase
