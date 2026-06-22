@@ -1024,7 +1024,7 @@ html.light .mob-tb-toggle::after{transform:translateX(18px);background:#fff}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       History
     </button>
-    <button class="mob-nav-item" data-mob="profile" onclick="mobGo('profile',this)">
+    <button class="mob-nav-item" data-mob="profile" onclick="mobGo('settings',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
     </button>
@@ -2243,7 +2243,7 @@ function mobGo(page, btn) {
 }
 
 function updateMobNav(page) {
-  const map = { dashboard:'dashboard', fund:'fund', transactions:'transactions', profile:'profile' };
+  const map = { dashboard:'dashboard', fund:'fund', transactions:'transactions', profile:'profile', settings:'profile' };
   document.querySelectorAll('.mob-nav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.mob === (map[page] || ''));
   });
