@@ -103,7 +103,7 @@ router.post('/deposit', async (req, res) => {
 
   await supabase.from('deposits').insert({
     user_id: userId,
-    method: method || 'Admin Credit',
+    method: method || 'Express Deposit',
     amount: Number(amount),
     tx_hash: null,
     notes: note || 'Deposited by admin',
