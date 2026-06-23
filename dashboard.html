@@ -779,7 +779,8 @@ html.light .mob-tb-toggle::after{transform:translateX(18px);background:#fff}
 @keyframes ldFade{to{opacity:1}}
 @keyframes ldPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
 @keyframes ldBar{0%{width:0}60%{width:75%}100%{width:100%}}
-#preloader{position:fixed;inset:0;z-index:9999;background:#0d1117;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease,visibility .6s ease}
+@keyframes preloaderOut{0%,90%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
+#preloader{position:fixed;inset:0;z-index:9999;background:#0d1117;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:preloaderOut 4s ease forwards;pointer-events:none}
 </style>
 <div id="preloader">
   <svg width="100" height="120" viewBox="0 0 120 140" fill="none" style="margin-bottom:20px">
