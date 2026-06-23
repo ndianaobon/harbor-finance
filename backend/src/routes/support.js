@@ -69,20 +69,39 @@ router.get('/unread', requireAuth, async (req, res) => {
 
 // GET /api/support/admin/conversations — all users with messages
 router.get('/admin/conversations', requireAuth, requireAdmin, async (req, res) => {
-  const { data, error } = await supabase.rpc('get_support_conversations').catch(() => ({ data: null, error: true }));
-
-  if (error || !data) {
-    const { data: msgs } = await supabase
+  try {
+    // Get all messages
+    const { data: msgs, error } = await supabase
       .from('support_messages')
-      .select('user_id, message, sender, read, created_at, users(first_name, last_name, email)')
+      .select('user_id, message, sender, read, created_at')
       .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('[SUPPORT] conversations error:', error.message);
+      return res.json({ conversations: [] });
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set((msgs || []).map(m => m.user_id))];
+
+    // Fetch user details separately
+    const userMap = {};
+    if (userIds.length) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email')
+        .in('id', userIds);
+      (users || []).forEach(u => { userMap[u.id] = u; });
+    }
+
+    // Build conversations
     const convos = {};
     (msgs || []).forEach(m => {
       if (!convos[m.user_id]) {
+        const u = userMap[m.user_id] || {};
         convos[m.user_id] = {
           user_id: m.user_id,
-          user: m.users,
+          user: { first_name: u.first_name || '', last_name: u.last_name || '', email: u.email || '' },
           last_message: m.message,
           last_sender: m.sender,
           last_at: m.created_at,
@@ -91,9 +110,11 @@ router.get('/admin/conversations', requireAuth, requireAdmin, async (req, res) =
       }
       if (m.sender === 'user' && !m.read) convos[m.user_id].unread++;
     });
-    return res.json({ conversations: Object.values(convos) });
+    res.json({ conversations: Object.values(convos) });
+  } catch (e) {
+    console.error('[SUPPORT] conversations crash:', e.message);
+    res.json({ conversations: [] });
   }
-  res.json({ conversations: data });
 });
 
 // GET /api/support/admin/messages/:userId — get chat with a user
