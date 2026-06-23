@@ -456,11 +456,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <button class="tb-btn" title="Toggle theme" onclick="toggleTheme()" id="themeBtn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
-      <div class="tb-badge">
-        <button class="tb-btn" title="Notifications">
+      <div class="tb-badge" id="adminNotifBadge">
+        <button class="tb-btn" title="Notifications" onclick="go('support')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </button>
-        <span class="dot"></span>
+        <span class="dot" id="adminNotifDot" style="display:none"></span>
       </div>
       <div class="tb-avatar" id="topAvatar">SA</div>
     </div>
@@ -1190,6 +1190,7 @@ async function openConvo(userId,name){
       +'<div style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);flex-shrink:0"><input type="text" id="adminReplyInput" placeholder="Type a reply..." style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:10px 14px;color:var(--text);font-size:13px" onkeydown="if(event.key===\'Enter\')sendAdminReply()"><button class="btn btn-primary" onclick="sendAdminReply()">Send</button></div>';
     const body=document.getElementById('adminChatBody');
     if(body)body.scrollTop=body.scrollHeight;
+    startChatPoll();
   }catch(e){chat.innerHTML='<div style="padding:20px;color:var(--danger)">Error: '+e.message+'</div>';}
 }
 async function sendAdminReply(){
@@ -1204,6 +1205,14 @@ async function sendAdminReply(){
     else toast('Failed to send','error');
   }catch(e){toast('Network error','error');}
 }
+let _chatPollInterval;
+function startChatPoll(){
+  clearInterval(_chatPollInterval);
+  _chatPollInterval=setInterval(function(){
+    if(_supportUserId) openConvo(_supportUserId,_supportUserName);
+  },8000);
+}
+function stopChatPoll(){ clearInterval(_chatPollInterval); }
 async function toggleCodeSetting(type,enabled){
   const body = type==='wc'?{wcEnabled:enabled}:{fsacEnabled:enabled};
   const r=await api('/admin/withdrawal-settings',{method:'PUT',body:JSON.stringify(body)});
@@ -1310,6 +1319,19 @@ function toggleTheme(){
     document.addEventListener(e, resetAdminIdle, {passive:true});
   });
   if(adminToken) resetAdminIdle();
+  // Poll for unread support messages
+  async function checkAdminNotifs(){
+    if(!adminToken) return;
+    try{
+      const r=await api('/support/admin/conversations');
+      if(!r.ok) return;
+      const d=await r.json();
+      const total=(d.conversations||[]).reduce((s,c)=>s+(c.unread||0),0);
+      const dot=document.getElementById('adminNotifDot');
+      if(dot) dot.style.display=total>0?'block':'none';
+    }catch(e){}
+  }
+  if(adminToken){ checkAdminNotifs(); setInterval(checkAdminNotifs,15000); }
 })();
 </script>
 </body>
