@@ -20,6 +20,8 @@ try { uploadRoutes = require('./routes/upload'); } catch(e) { console.error('[ST
 
 const app  = express();
 const PORT = parseInt(process.env.PORT, 10) || 4000;
+process.on('uncaughtException', (err) => { console.error('[FATAL]', err.message, err.stack); });
+process.on('unhandledRejection', (err) => { console.error('[UNHANDLED]', err); });
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
