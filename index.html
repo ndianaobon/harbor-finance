@@ -452,7 +452,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:56px
     <div style="height:100%;border-radius:2px;background:linear-gradient(90deg,#4a7ab5,#D4AF37);animation:ldBar 2s .3s ease-in-out forwards;width:0%"></div>
   </div>
 </div>
-<script>window.addEventListener('load',function(){var p=document.getElementById('preloader');if(p){setTimeout(function(){p.style.opacity='0';p.style.visibility='hidden';setTimeout(function(){p.remove()},600)},2600)}})</script>
+<script>
+function hidePreloader(){var p=document.getElementById('preloader');if(p&&!p._hidden){p._hidden=true;p.style.opacity='0';p.style.visibility='hidden';setTimeout(function(){p.remove()},600)}}
+window.addEventListener('load',function(){setTimeout(hidePreloader,2600)});
+setTimeout(hidePreloader,5000);
+</script>
 
 <!-- NAV -->
 <nav class="nav" id="nav">
