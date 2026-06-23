@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path       = require('path');
 const express    = require('express');
 const helmet     = require('helmet');
 const cors       = require('cors');
@@ -24,7 +25,7 @@ process.on('uncaughtException', (err) => { console.error('[FATAL]', err.message,
 process.on('unhandledRejection', (err) => { console.error('[UNHANDLED]', err); });
 
 // ── Security ──────────────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: [
     'https://harborfinance.net',
@@ -112,6 +113,14 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/support',       supportRoutes);
 if (uploadRoutes) app.use('/api/upload', uploadRoutes);
 else app.post('/api/upload', (_req, res) => res.status(500).json({ error: 'Upload module failed to load. Check server logs.' }));
+
+// ── Static frontend ──────────────────────────────────────────────────────────
+const frontendDir = path.join(__dirname, '..', '..', 'public');
+app.use(express.static(frontendDir));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(frontendDir, 'index.html'));
+});
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

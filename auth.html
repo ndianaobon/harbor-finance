@@ -1020,6 +1020,14 @@ function togglePw(inputId, btn){
 // ── AUTO-DETECT RESET TOKEN / OAUTH CALLBACK IN URL ──────────────────────────
 (async function(){
   const params = new URLSearchParams(window.location.search);
+
+  const refParam = params.get('ref');
+  if(refParam){
+    const refInput = document.getElementById('regRef');
+    if(refInput) refInput.value = refParam;
+    show('scReg');
+  }
+
   if(params.get('mode')==='reset') { show('scReset'); return; }
   if(params.get('mode')==='verify'){ show('scEmailVerify'); return; }
 
