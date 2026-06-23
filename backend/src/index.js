@@ -114,6 +114,11 @@ app.use('/api/support',       supportRoutes);
 if (uploadRoutes) app.use('/api/upload', uploadRoutes);
 else app.post('/api/upload', (_req, res) => res.status(500).json({ error: 'Upload module failed to load. Check server logs.' }));
 
+// ── Referral redirect (old /ref/CODE links) ─────────────────────────────────
+app.get('/ref/:code', (req, res) => {
+  res.redirect(301, '/auth.html?ref=' + encodeURIComponent(req.params.code));
+});
+
 // ── Static frontend ──────────────────────────────────────────────────────────
 const frontendDir = path.join(__dirname, '..', '..', 'public');
 app.use(express.static(frontendDir));
