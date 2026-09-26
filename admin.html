@@ -431,10 +431,6 @@ setTimeout(hidePreloader,5000);
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
         Wallet Addresses
       </div>
-      <div class="ni" data-page="withdrawalCodes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        Withdrawal Codes
-      </div>
     </nav>
     <div class="sb-footer">
       <div class="sb-admin-info">
@@ -585,7 +581,7 @@ function closeSB(){
 const TITLES = {
   overview:'Dashboard Overview', logs:'Activity Logs', users:'User Management',
   kyc:'KYC Management', deposits:'Deposit Management', withdrawals:'Withdrawal Management',
-  investments:'Investment Plans', notifications:'Notification System', support:'Customer Support', walletAddresses:'Wallet Addresses', withdrawalCodes:'Withdrawal Codes',
+  investments:'Investment Plans', notifications:'Notification System', support:'Customer Support', walletAddresses:'Wallet Addresses',
 };
 async function go(key){
   document.getElementById('tbTitle').textContent = TITLES[key]||key;
@@ -730,7 +726,7 @@ async users(){
   </div>
   <div class="tbl-overflow"><table id="usersTable">
     <thead><tr><th>User</th><th>Country</th><th>Balance</th><th>KYC</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-ghost btn-xs" onclick="editBalance(\''+u.id+'\',\''+ns+'\','+u.balance+')">Balance</button><button class="btn btn-primary btn-xs" onclick="adminDeposit(\''+u.id+'\',\''+ns+'\')">Add Funds</button><button class="btn btn-ghost btn-xs" onclick="adminAddProfit(\''+u.id+'\',\''+ns+'\')">Add Profit</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
+    <tbody>${users.length?users.map(u=>{const nm=((u.first_name||'')+' '+(u.last_name||'')).trim();const ini=nm.split(' ').map(x=>x[0]||'').join('').toUpperCase()||'?';const ns=nm.replace(/'/g,"\\'");return '<tr><td><div class="user-cell"><div class="av">'+ini+'</div><div><div class="name">'+(nm||'Unknown')+'</div><div class="email">'+u.email+'</div></div></div></td><td>'+(u.country||'—')+'</td><td><strong>'+fmt(u.balance)+'</strong></td><td>'+kycBadge(u.kyc_status)+'</td><td>'+statusBadge(u.status)+'</td><td style="color:var(--text-3);font-size:12px">'+fmtDate(u.created_at)+'</td><td><div class="act-btns"><button class="btn btn-ghost btn-xs" onclick="viewUser(\''+u.id+'\')">View</button><button class="btn btn-primary btn-xs" onclick="adminDeposit(\''+u.id+'\',\''+ns+'\')">Add Funds</button>'+(u.status==='active'?'<button class="btn btn-warn btn-xs" onclick="userAction(\'suspended\',\''+u.id+'\',\''+ns+'\')">Suspend</button>':'')+(u.status==='suspended'?'<button class="btn btn-primary btn-xs" onclick="userAction(\'active\',\''+u.id+'\',\''+ns+'\')">Activate</button>':'')+(u.status!=='banned'?'<button class="btn btn-danger btn-xs" onclick="userAction(\'banned\',\''+u.id+'\',\''+ns+'\')">Ban</button>':'')+'</div></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3)">No users found.</td></tr>'}</tbody>
   </table></div>
 </div>`;
 },
@@ -849,42 +845,6 @@ notifications(){
 </div>`;
 },
 
-async withdrawalCodes(){
-  let wcOn=true, fsacOn=true;
-  try{ const r=await api('/admin/withdrawal-settings'); if(r.ok){ const d=await r.json(); wcOn=d.wcEnabled; fsacOn=d.fsacEnabled; } }catch(e){}
-  return `
-<div class="page-header">
-  <h2>Withdrawal Codes</h2>
-  <p>Manage WC and FSAC code requirements for withdrawals. Generate codes for users.</p>
-</div>
-<div class="form-card" style="margin-bottom:20px">
-  <h3 style="margin-bottom:16px">Code Settings</h3>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-    <div><div style="font-size:14px;font-weight:600">WC Code (Withdrawal Confirmation)</div><div style="font-size:12px;color:var(--text-3)">Require users to enter a WC code before withdrawing</div></div>
-    <label class="toggle"><input type="checkbox" ${wcOn?'checked':''} onchange="toggleCodeSetting('wc',this.checked)"><span class="toggle-slider"></span></label>
-  </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
-    <div><div style="font-size:14px;font-weight:600">FSAC Code</div><div style="font-size:12px;color:var(--text-3)">Require users to enter an FSAC code before withdrawing</div></div>
-    <label class="toggle"><input type="checkbox" ${fsacOn?'checked':''} onchange="toggleCodeSetting('fsac',this.checked)"><span class="toggle-slider"></span></label>
-  </div>
-</div>
-<div class="form-card">
-  <h3 style="margin-bottom:16px">Generate Code for User</h3>
-  <div class="form-grid">
-    <div class="form-group"><label>User ID</label><input type="text" id="codeUserId" placeholder="Paste user ID here"></div>
-    <div class="form-group"><label>Code Type</label><select id="codeType"><option value="wc">WC Code</option><option value="fsac">FSAC Code</option></select></div>
-  </div>
-  <div style="display:flex;gap:10px;margin-top:14px">
-    <button class="btn btn-primary" onclick="generateCode()">Generate Code</button>
-  </div>
-  <div id="generatedCode" style="display:none;margin-top:16px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-    <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Generated Code:</div>
-    <div id="generatedCodeVal" style="font-size:20px;font-weight:800;font-family:monospace;color:var(--primary);letter-spacing:2px"></div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="navigator.clipboard?.writeText(document.getElementById('generatedCodeVal').textContent);toast('Copied!','success')">Copy Code</button>
-  </div>
-</div>`;
-},
-
 async walletAddresses(){
   let wallets = { BTC:'', ETH:'', USDT_TRC20:'', USDT_ERC20:'', USDT_BEP20:'' };
   try {
@@ -961,20 +921,15 @@ async function viewUser(id){
     '<div class="info-row"><span class="k">Email Verified</span><span class="v">'+(u.email_verified?'Yes':'No')+'</span></div>'+
     '<div class="info-row"><span class="k">2FA</span><span class="v">'+(u.tfa_enabled?'Enabled':'Disabled')+'</span></div>'+
     '<div class="info-row"><span class="k">Role</span><span class="v">'+u.role+'</span></div>'+
-    '<div class="info-row"><span class="k">Signal Strength</span><span class="v" style="color:var(--primary)">'+(u.signal_strength??92)+'%</span></div>'+
-    '<div class="info-row"><span class="k">Account Status Text</span><span class="v">'+(u.account_status_text||'Account Active')+'</span></div>'+
     '<div class="info-row"><span class="k">Joined</span><span class="v">'+fmtDate(u.created_at)+'</span></div>',
-    '<button class="btn btn-primary" onclick="editUser(\''+u.id+'\',\''+nm.replace(/'/g,"\\'")+'\',\''+u.status+'\',\''+u.role+'\','+u.balance+','+(u.signal_strength??92)+',\''+(u.account_status_text||'Account Active').replace(/'/g,"\\'")+'\')">Edit</button> '+
+    '<button class="btn btn-primary" onclick="editUser(\''+u.id+'\',\''+nm.replace(/'/g,"\\'")+'\',\''+u.status+'\',\''+u.role+'\')">Edit</button> '+
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
   );
 }
-function editUser(id,name,curStatus,curRole,curBal,curSignal,curStatusText){
+function editUser(id,name,curStatus,curRole){
   openModal('Edit User — '+name,
     '<div class="form-group"><label>Status</label><select id="editStatus"><option value="active"'+(curStatus==='active'?' selected':'')+'>Active</option><option value="suspended"'+(curStatus==='suspended'?' selected':'')+'>Suspended</option><option value="banned"'+(curStatus==='banned'?' selected':'')+'>Banned</option></select></div>'+
     '<div class="form-group" style="margin-top:14px"><label>Role</label><select id="editRole"><option value="user"'+(curRole==='user'?' selected':'')+'>User</option><option value="admin"'+(curRole==='admin'?' selected':'')+'>Admin</option></select></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Balance ($)</label><input type="number" id="editBal" value="'+curBal+'" min="0" step="0.01"></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Signal Strength (%)</label><input type="number" id="editSignal" value="'+(curSignal??92)+'" min="0" max="100" step="1"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Displayed as trading signal strength on user\'s dashboard (0–100)</div></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Account Status Text</label><input type="text" id="editStatusText" value="'+(curStatusText||'Account Active')+'"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Custom status shown on user\'s dashboard (e.g. "Account Active", "Under Review")</div></div>'+
     '<div class="form-group" style="margin-top:14px"><label>Note (optional)</label><textarea id="editNote" placeholder="Reason for changes..."></textarea></div>',
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
     '<button class="btn btn-primary" onclick="saveUserEdit(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')" >Save Changes</button>'
@@ -983,38 +938,16 @@ function editUser(id,name,curStatus,curRole,curBal,curSignal,curStatusText){
 async function saveUserEdit(id,name){
   const status=document.getElementById('editStatus').value;
   const role=document.getElementById('editRole').value;
-  const balance=Number(document.getElementById('editBal').value);
-  const signal_strength=Number(document.getElementById('editSignal').value);
-  const account_status_text=document.getElementById('editStatusText').value.trim();
   const note=document.getElementById('editNote').value;
-  if(isNaN(balance)){toast('Enter a valid balance','error');return;}
-  if(isNaN(signal_strength)||signal_strength<0||signal_strength>100){toast('Signal strength must be 0–100','error');return;}
-  const r=await api('/admin/users/'+id,{method:'PATCH',body:JSON.stringify({status,role,balance,signal_strength,account_status_text,note})});
+  const r=await api('/admin/users/'+id,{method:'PATCH',body:JSON.stringify({status,role,note})});
   if(r.ok){closeModal();toast('Updated '+name,'success');go('users');}
-  else{const e=await r.json();toast(e.error||'Failed','error');}
-}
-function editBalance(id,name,bal){
-  openModal('Edit Balance — '+name,
-    '<div class="form-group"><label>Current Balance</label><input type="text" value="'+fmt(bal)+'" readonly style="color:var(--text-3)"></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>New Balance ($)</label><input type="number" id="newBal" value="'+bal+'" min="0" step="0.01"></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Reason / Note</label><textarea id="balNote" placeholder="Reason for balance adjustment..."></textarea></div>',
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
-    '<button class="btn btn-primary" onclick="saveBalance(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')" >Update Balance</button>'
-  );
-}
-async function saveBalance(id,name){
-  const bal=document.getElementById('newBal').value;
-  const note=document.getElementById('balNote').value;
-  if(bal===''||isNaN(Number(bal))){toast('Enter a valid balance','error');return;}
-  const r=await api('/admin/users/'+id,{method:'PATCH',body:JSON.stringify({balance:Number(bal),note})});
-  if(r.ok){closeModal();toast('Balance updated for '+name,'success');go('users');}
   else{const e=await r.json();toast(e.error||'Failed','error');}
 }
 function adminDeposit(id,name){
   openModal('Add Funds — '+name,
     '<div class="form-group"><label>Amount ($)</label><input type="number" id="depAmt" placeholder="e.g. 100" min="0" step="0.01"></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Method</label><select id="depMethod"><option>Express Deposit</option><option>Bank Transfer</option><option>Bitcoin</option><option>Bonus</option></select></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Note</label><textarea id="depNote" placeholder="Reason for deposit..."></textarea></div>',
+    '<div class="form-group" style="margin-top:14px"><label>Method</label><select id="depMethod"><option>Express Deposit</option><option>Bank Transfer</option><option>Bitcoin</option><option>USDT</option></select></div>'+
+    '<div class="form-group" style="margin-top:14px"><label>Note</label><textarea id="depNote" placeholder="Transaction hash or reference for this deposit..."></textarea></div>',
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
     '<button class="btn btn-primary" onclick="doAdminDeposit(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')">Deposit Funds</button>'
   );
@@ -1026,22 +959,6 @@ async function doAdminDeposit(id,name){
   if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
   const r=await api('/admin/deposit',{method:'POST',body:JSON.stringify({userId:id,amount,method,note})});
   if(r.ok){closeModal();toast('$'+amount.toFixed(2)+' deposited to '+name,'success');go('users');}
-  else{const e=await r.json();toast(e.error||'Failed','error');}
-}
-function adminAddProfit(id,name){
-  openModal('Add Profit — '+name,
-    '<div class="form-group"><label>Profit Amount ($)</label><input type="number" id="profitAmt" placeholder="e.g. 50" min="0" step="0.01"></div>'+
-    '<div class="form-group" style="margin-top:14px"><label>Note</label><textarea id="profitNote" placeholder="e.g. ROI payout, bonus..."></textarea></div>',
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button> '+
-    '<button class="btn btn-primary" onclick="doAddProfit(\''+id+'\',\''+name.replace(/'/g,"\\'")+'\')">Add Profit</button>'
-  );
-}
-async function doAddProfit(id,name){
-  const amount=Number(document.getElementById('profitAmt').value);
-  const note=document.getElementById('profitNote').value;
-  if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
-  const r=await api('/admin/add-profit',{method:'POST',body:JSON.stringify({userId:id,amount,note})});
-  if(r.ok){closeModal();toast('$'+amount.toFixed(2)+' profit added to '+name,'success');go('users');}
   else{const e=await r.json();toast(e.error||'Failed','error');}
 }
 function userAction(status,id,name){
@@ -1218,24 +1135,6 @@ function startChatPoll(){
   },8000);
 }
 function stopChatPoll(){ clearInterval(_chatPollInterval); }
-async function toggleCodeSetting(type,enabled){
-  const body = type==='wc'?{wcEnabled:enabled}:{fsacEnabled:enabled};
-  const r=await api('/admin/withdrawal-settings',{method:'PUT',body:JSON.stringify(body)});
-  if(r.ok)toast(type.toUpperCase()+' code '+(enabled?'enabled':'disabled'),'success');
-  else toast('Failed to update','error');
-}
-async function generateCode(){
-  const userId=document.getElementById('codeUserId').value.trim();
-  const codeType=document.getElementById('codeType').value;
-  if(!userId){toast('Enter a user ID','error');return;}
-  const r=await api('/admin/generate-code',{method:'POST',body:JSON.stringify({userId,codeType})});
-  if(r.ok){
-    const d=await r.json();
-    document.getElementById('generatedCode').style.display='block';
-    document.getElementById('generatedCodeVal').textContent=d.code;
-    toast(codeType.toUpperCase()+' code generated!','success');
-  } else { const e=await r.json(); toast(e.error||'Failed','error'); }
-}
 async function saveWalletAddresses(){
   const btc    = (document.getElementById('waBtc')    || {}).value || '';
   const eth    = (document.getElementById('waEth')    || {}).value || '';

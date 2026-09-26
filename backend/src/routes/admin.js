@@ -59,22 +59,22 @@ router.get('/users', async (req, res) => {
 router.get('/users/:id', async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, username, first_name, last_name, country, phone, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at, tfa_enabled, signal_strength, account_status_text')
+    .select('id, email, username, first_name, last_name, country, phone, balance, role, status, kyc_status, email_verified, referral_code, referred_by, created_at, tfa_enabled')
     .eq('id', req.params.id)
     .single();
   if (error || !data) return res.status(404).json({ error: 'User not found' });
   res.json({ user: data });
 });
 
-// PATCH /api/admin/users/:id — update status, role, balance, signal_strength, account_status_text
+// PATCH /api/admin/users/:id — update status and role.
+// Balances are never edited directly: they change only through deposits,
+// withdrawals and investments so every movement has a ledger record.
 router.patch('/users/:id', async (req, res) => {
-  const { status, role, balance, note, signal_strength, account_status_text } = req.body;
+  const { status, role, note } = req.body;
   const updates = {};
   if (status) updates.status = status;
   if (role)   updates.role   = role;
-  if (balance !== undefined) updates.balance = Number(balance);
-  if (signal_strength !== undefined) updates.signal_strength = Math.max(0, Math.min(100, Number(signal_strength)));
-  if (account_status_text !== undefined) updates.account_status_text = String(account_status_text).trim();
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 
   const { error } = await supabase.from('users').update(updates).eq('id', req.params.id);
   if (error) return res.status(500).json({ error: 'Failed to update user' });
@@ -117,66 +117,6 @@ router.post('/deposit', async (req, res) => {
   }).then(null, () => {});
 
   res.json({ message: 'Funds deposited successfully', newBalance: newBal });
-});
-
-// POST /api/admin/add-profit — admin adds profit to a user
-router.post('/add-profit', async (req, res) => {
-  const { userId, amount, note } = req.body;
-  if (!userId || !amount || Number(amount) <= 0) {
-    return res.status(400).json({ error: 'userId and valid amount are required' });
-  }
-
-  const { data: user } = await supabase.from('users').select('balance').eq('id', userId).single();
-  if (!user) return res.status(404).json({ error: 'User not found' });
-
-  const newBal = Number(user.balance) + Number(amount);
-  await supabase.from('users').update({ balance: newBal }).eq('id', userId);
-
-  await supabase.from('profit_history').insert({
-    user_id: userId,
-    amount: Number(amount),
-    type: 'bonus',
-  });
-
-  supabase.from('activity_logs').insert({
-    user_id: req.user.id,
-    action: 'admin_add_profit',
-    meta: { target_user: userId, amount: Number(amount), note },
-  }).then(null, () => {});
-
-  res.json({ message: 'Profit added successfully', newBalance: newBal });
-});
-
-// GET /api/admin/withdrawal-settings — get WC/FSAC toggle status
-router.get('/withdrawal-settings', async (req, res) => {
-  const { data } = await supabase.from('site_settings').select('key, value').in('key', ['wc_code_enabled', 'fsac_code_enabled']);
-  const settings = {};
-  (data || []).forEach(r => { settings[r.key] = r.value === 'true'; });
-  res.json({ wcEnabled: settings.wc_code_enabled ?? true, fsacEnabled: settings.fsac_code_enabled ?? true });
-});
-
-// PUT /api/admin/withdrawal-settings — toggle WC/FSAC on/off
-router.put('/withdrawal-settings', async (req, res) => {
-  const { wcEnabled, fsacEnabled } = req.body;
-  if (wcEnabled !== undefined) await supabase.from('site_settings').upsert({ key: 'wc_code_enabled', value: String(wcEnabled), updated_at: new Date().toISOString() });
-  if (fsacEnabled !== undefined) await supabase.from('site_settings').upsert({ key: 'fsac_code_enabled', value: String(fsacEnabled), updated_at: new Date().toISOString() });
-  res.json({ message: 'Settings updated' });
-});
-
-// POST /api/admin/generate-code — generate WC or FSAC code for a user
-router.post('/generate-code', async (req, res) => {
-  const { userId, codeType } = req.body;
-  if (!userId || !['wc', 'fsac'].includes(codeType)) return res.status(400).json({ error: 'userId and codeType (wc/fsac) required' });
-  const code = codeType.toUpperCase() + '-' + require('crypto').randomBytes(4).toString('hex').toUpperCase();
-  await supabase.from('withdrawal_codes').insert({ user_id: userId, code_type: codeType, code });
-  supabase.from('activity_logs').insert({ user_id: req.user.id, action: 'generate_' + codeType + '_code', meta: { target_user: userId, code } }).then(null, () => {});
-  res.json({ code, codeType });
-});
-
-// GET /api/admin/user-codes/:userId — get codes for a user
-router.get('/user-codes/:userId', async (req, res) => {
-  const { data } = await supabase.from('withdrawal_codes').select('*').eq('user_id', req.params.userId).order('created_at', { ascending: false });
-  res.json({ codes: data || [] });
 });
 
 // GET /api/admin/wallets — deposit wallet addresses
