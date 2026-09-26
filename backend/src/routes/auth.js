@@ -110,6 +110,8 @@ router.post('/register', async (req, res) => {
       email_verified: false,
       kyc_status:    'unverified',
       balance:       0,
+      signal_strength: 0,
+      account_status_text: 'Account Active',
     })
     .select('id, email, first_name')
     .single();
@@ -377,7 +379,7 @@ router.post('/verify-2fa', async (req, res) => {
 
   const { data: userData } = await supabase
     .from('users')
-    .select('id, email, username, first_name, last_name, role, status, balance, kyc_status, referral_code, referred_by, phone, country, email_verified, tfa_enabled, created_at')
+    .select('id, email, username, first_name, last_name, role, status, balance, kyc_status, referral_code, referred_by, phone, country, email_verified, tfa_enabled, created_at, signal_strength, account_status_text')
     .eq('id', userId)
     .single();
 
@@ -531,7 +533,7 @@ router.post('/reset-password', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   const { data: user } = await supabase
     .from('users')
-    .select('id, email, username, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, referred_by, balance, tfa_enabled, created_at')
+    .select('id, email, username, first_name, last_name, phone, country, role, status, email_verified, kyc_status, referral_code, referred_by, balance, tfa_enabled, created_at, signal_strength, account_status_text')
     .eq('id', req.user.id)
     .single();
 
